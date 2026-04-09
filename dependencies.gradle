@@ -1,0 +1,57 @@
+/*
+ * Add your dependencies here.
+ * Supported configurations: api, implementation, compileOnly, compileOnlyApi,
+ * runtimeOnlyNonPublishable, devOnlyNonPublishable, runtimeOnly, annotationProcessor,
+ * shadowImplementation, testCONFIG
+ *
+ * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html
+ */
+dependencies {
+    elytraModpackVersion {
+        setGtnhVersion("2.8.4")
+    }
+
+    // Core dependencies (required for any GTNH addon)
+    implementation(gtnh("GT5-Unofficial"))
+    implementation(gtnh("GTNHLib"))
+    implementation(gtnh("NewHorizonsCoreMod"))
+
+    // Common optional dependencies - uncomment what you need
+    // implementation(gtnh("AE2FluidCraft-Rework"))
+    // implementation(gtnh("Avaritia"))
+    // implementation(gtnh("Avaritiaddons"))
+    // implementation(gtnh("Botania"))
+    // implementation(gtnh("BloodMagic"))
+    // implementation(gtnh("ThaumicEnergistics"))
+    // implementation(gtnh("MagicBees"))
+    // implementation(gtnh("ForestryMC"))
+    // implementation(gtnh("EnderIO"))
+    // implementation(gtnh("EnderCore"))
+    // implementation(gtnh("Galaxy-Space-GTNH"))
+    // implementation(gtnh("supersolarpanels"))
+    // implementation(gtnh("Electro-Magic-Tools"))
+    // implementation(gtnh("Hodgepodge"))
+    // implementation(gtnh("Universal-Singularities"))
+    // implementation(gtnh("Eternal-Singularity"))
+
+    // Thaumcraft (required for TC integration)
+    // implementation("thaumcraft:Thaumcraft:1.7.10-4.2.3.5:dev")
+
+    // IC2
+    implementation("net.industrial-craft:industrialcraft-2:2.2.828-experimental:dev")
+
+    // For Mixin (AutoValue)
+    implementation('com.google.auto.value:auto-value-annotations:1.10.1')
+    annotationProcessor('com.google.auto.value:auto-value:1.10.1')
+}
+
+/**
+ * Generate a dependency notation for GTNH projects.
+ *
+ * @param name       the name of the dependency in the manifest.
+ * @param classifier the classifier
+ * @return the generated notation
+ */
+String gtnh(String name, String classifier = "dev") {
+    return project.elytraModpackVersion.gtnhdev(name)
+}
