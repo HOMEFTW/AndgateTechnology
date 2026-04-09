@@ -34,7 +34,7 @@
 |------|-------------------|-------------|
 | I | 30% | 基础配方 + 简单回收 |
 | II | 60% | 全部通用配方 + 中级回收 |
-| III | 85% | 全部配方 + 高级回收 |
+| III | 90% | 全部配方 + 高级回收 |
 
 电路板始终 100% 回收，不受阶段和电压影响。
 
@@ -45,16 +45,18 @@
 ### 硬编码特殊配方
 
 1. **线缆拆解**：GT 线缆 → 橡胶 + GT 导线（所有阶段可用）
-2. **激光真空管制造**：原版玻璃 + 1×铱锇合金箔 → 激光真空管（所有阶段可用）
+2. **激光真空管制造**：原版玻璃 + 1×铱锇合金箔 → 激光真空管（阶段 II 及以上可用）
+
+> 注：以上为初步配方，后续会持续添加更多特殊配方。
 
 ### 自动解析回收配方
 
 **解析时机**：`serverStarted` 阶段（所有 mod 的配方已注册完毕）
 
-**配方来源**：
-- `gregtech.api.recipe.RecipeMaps.*` — 所有 GT 配方表
-- `net.minecraft.item.crafting.CraftingManager` — Forge 合成配方（覆盖其他 mod 的合成配方）
-- `net.minecraft.item.crafting.FurnaceRecipes` — 熔炉配方
+**配方来源**（按优先级）：
+- `gregtech.api.recipe.RecipeMaps.*` — **主要来源**，GTNH 私货 mod（TST 等）的配方都在 GT RecipeMaps 中（组装机、化工、离心机等）
+- `net.minecraft.item.crafting.CraftingManager` — Forge 合成配方（补充扫描）
+- `net.minecraft.item.crafting.FurnaceRecipes` — 熔炉配方（补充扫描）
 
 **解析流程**：
 ```
@@ -74,7 +76,7 @@
 // 阶段基础回收率
 Stage1_BaseRecoveryRate = 0.30
 Stage2_BaseRecoveryRate = 0.60
-Stage3_BaseRecoveryRate = 0.85
+Stage3_BaseRecoveryRate = 0.90
 
 // 电压加成（每级增加的回收率）
 VoltageBonusPerTier = 0.02
@@ -119,7 +121,8 @@ com.andgatech.AHTech/
 
 ## 跨 Mod 兼容性
 
-- 配方解析不依赖 GT 内部 API，使用 Forge 标准 `CraftingManager` 接口
+- GTNH 私货 mod（TST、Avaritia 等）的配方主要注册在 GT RecipeMaps 中，`RecipeMaps` 的完整遍历已覆盖绝大多数情况
+- `CraftingManager` 和 `FurnaceRecipes` 作为补充，覆盖非 GT 体系的配方
 - 对未知 mod 的物品也能生成回收配方（只要能找到其合成配方）
 - 不会崩溃：解析失败时跳过该配方并记录 warn 日志
 
