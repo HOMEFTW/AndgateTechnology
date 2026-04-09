@@ -7,6 +7,7 @@ import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
+import gregtech.api.enums.TierEU;
 import gregtech.api.interfaces.IRecipeMap;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
@@ -38,7 +39,7 @@ public class ElectronicsMarketRecipePool {
         Materials.Iridium,
         Materials.Electrum,
         Materials.Tungsten,
-        Materials.Tungstensteel,
+        Materials.TungstenSteel,
         Materials.HSSG,
         Materials.NiobiumTitanium,
         Materials.VanadiumGallium,
@@ -59,7 +60,6 @@ public class ElectronicsMarketRecipePool {
         Materials.SuperconductorUEV,
         Materials.SuperconductorUIV,
         Materials.SuperconductorUMV,
-        Materials.SuperconductorUXV,
         Materials.Longasssuperconductornameforuvwire,
         Materials.Longasssuperconductornameforuhvwire,
     };
@@ -115,7 +115,7 @@ public class ElectronicsMarketRecipePool {
                 GTValues.RA.stdBuilder()
                     .itemInputs(GTUtility.copyAmountUnsafe(1, cableStack))
                     .itemOutputs(wireStack, rubberStack)
-                    .eut(GTValues.RECIPE_LV)
+                    .eut(TierEU.RECIPE_LV)
                     .duration(100)
                     .addTo(EM);
                 count++;
@@ -169,7 +169,7 @@ public class ElectronicsMarketRecipePool {
             .itemInputs(glassInput, osmiridiumFoil)
             .itemOutputs(outputTube)
             .specialValue(2)
-            .eut(GTValues.RECIPE_HV)
+            .eut(TierEU.RECIPE_HV)
             .duration(200)
             .addTo(EM);
 
