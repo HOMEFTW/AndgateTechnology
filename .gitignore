@@ -26,3 +26,4 @@ logs/
 # Build output
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+chat.txt

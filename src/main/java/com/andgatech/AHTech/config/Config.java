@@ -53,11 +53,34 @@ public class Config {
         // of YourMachine.");
 
         // Electronics Market
-        Enable_ElectronicsMarket = configuration.getBoolean("EnableElectronicsMarket", "ElectronicsMarket", true, "Enable/disable Electronics Market multiblock.");
-        Stage1_BaseRecoveryRate = (double) configuration.getFloat("Stage1BaseRecoveryRate", "ElectronicsMarket", 0.30f, 0.0f, 1.0f, "Stage I base recycling rate.");
-        Stage2_BaseRecoveryRate = (double) configuration.getFloat("Stage2BaseRecoveryRate", "ElectronicsMarket", 0.60f, 0.0f, 1.0f, "Stage II base recycling rate.");
-        Stage3_BaseRecoveryRate = (double) configuration.getFloat("Stage3BaseRecoveryRate", "ElectronicsMarket", 0.90f, 0.0f, 1.0f, "Stage III base recycling rate.");
-        VoltageBonusPerTier = (double) configuration.getFloat("VoltageBonusPerTier", "ElectronicsMarket", 0.02f, 0.0f, 1.0f, "Recovery rate bonus per voltage tier.");
+        Enable_ElectronicsMarket = configuration.getBoolean(
+            "EnableElectronicsMarket",
+            "ElectronicsMarket",
+            true,
+            "Enable/disable Electronics Market multiblock.");
+        Stage1_BaseRecoveryRate = (double) configuration
+            .getFloat("Stage1BaseRecoveryRate", "ElectronicsMarket", 0.30f, 0.0f, 1.0f, "Stage I base recycling rate.");
+        Stage2_BaseRecoveryRate = (double) configuration.getFloat(
+            "Stage2BaseRecoveryRate",
+            "ElectronicsMarket",
+            0.60f,
+            0.0f,
+            1.0f,
+            "Stage II base recycling rate.");
+        Stage3_BaseRecoveryRate = (double) configuration.getFloat(
+            "Stage3BaseRecoveryRate",
+            "ElectronicsMarket",
+            0.90f,
+            0.0f,
+            1.0f,
+            "Stage III base recycling rate.");
+        VoltageBonusPerTier = (double) configuration.getFloat(
+            "VoltageBonusPerTier",
+            "ElectronicsMarket",
+            0.02f,
+            0.0f,
+            1.0f,
+            "Recovery rate bonus per voltage tier.");
 
         if (configuration.hasChanged()) {
             configuration.save();

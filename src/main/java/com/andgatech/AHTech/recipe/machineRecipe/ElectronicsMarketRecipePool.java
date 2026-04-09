@@ -3,6 +3,9 @@ package com.andgatech.AHTech.recipe.machineRecipe;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 
+import com.andgatech.AHTech.AndgateTechnology;
+import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
+
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
@@ -12,72 +15,36 @@ import gregtech.api.interfaces.IRecipeMap;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 
-import com.andgatech.AHTech.AndgateTechnology;
-import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
-
 /**
  * Hardcoded special recipes for the Electronics Market multiblock.
  *
- * <p>Cable Disassembly: GT cables are broken down into rubber + wire.
+ * <p>
+ * Cable Disassembly: GT cables are broken down into rubber + wire.
  * Laser Vacuum Tube: Vanilla glass + Osmiridium foil -> advanced vacuum tube.
  */
 public class ElectronicsMarketRecipePool {
 
     // The set of wire materials for which cables exist in standard GT.
     // Each entry maps to a GT cable registered in the ore dictionary.
-    private static final Materials[] CABLE_MATERIALS = {
-        Materials.Copper,
-        Materials.AnnealedCopper,
-        Materials.Gold,
-        Materials.Aluminium,
-        Materials.Tin,
-        Materials.Silver,
-        Materials.Nickel,
-        Materials.Iron,
-        Materials.Platinum,
-        Materials.Osmium,
-        Materials.Iridium,
-        Materials.Electrum,
-        Materials.Tungsten,
-        Materials.TungstenSteel,
-        Materials.HSSG,
-        Materials.NiobiumTitanium,
-        Materials.VanadiumGallium,
-        Materials.YttriumBariumCuprate,
-        Materials.Naquadah,
-        Materials.NaquadahAlloy,
-        Materials.Duranium,
-        Materials.Tritanium,
-        Materials.Superconductor,
-        Materials.SuperconductorMV,
-        Materials.SuperconductorHV,
-        Materials.SuperconductorEV,
-        Materials.SuperconductorIV,
-        Materials.SuperconductorLuV,
-        Materials.SuperconductorZPM,
-        Materials.SuperconductorUV,
-        Materials.SuperconductorUHV,
-        Materials.SuperconductorUEV,
-        Materials.SuperconductorUIV,
-        Materials.SuperconductorUMV,
-        Materials.Longasssuperconductornameforuvwire,
-        Materials.Longasssuperconductornameforuhvwire,
-    };
+    private static final Materials[] CABLE_MATERIALS = { Materials.Copper, Materials.AnnealedCopper, Materials.Gold,
+        Materials.Aluminium, Materials.Tin, Materials.Silver, Materials.Nickel, Materials.Iron, Materials.Platinum,
+        Materials.Osmium, Materials.Iridium, Materials.Electrum, Materials.Tungsten, Materials.TungstenSteel,
+        Materials.HSSG, Materials.NiobiumTitanium, Materials.VanadiumGallium, Materials.YttriumBariumCuprate,
+        Materials.Naquadah, Materials.NaquadahAlloy, Materials.Duranium, Materials.Tritanium, Materials.Superconductor,
+        Materials.SuperconductorMV, Materials.SuperconductorHV, Materials.SuperconductorEV, Materials.SuperconductorIV,
+        Materials.SuperconductorLuV, Materials.SuperconductorZPM, Materials.SuperconductorUV,
+        Materials.SuperconductorUHV, Materials.SuperconductorUEV, Materials.SuperconductorUIV,
+        Materials.SuperconductorUMV, Materials.Longasssuperconductornameforuvwire,
+        Materials.Longasssuperconductornameforuhvwire, };
 
     // Cable size multipliers: each size has a different rubber yield.
-    private static final OrePrefixes[] CABLE_PREFIXES = {
-        OrePrefixes.cableGt01,
-        OrePrefixes.cableGt02,
-        OrePrefixes.cableGt04,
-        OrePrefixes.cableGt08,
-        OrePrefixes.cableGt12,
-        OrePrefixes.cableGt16,
-    };
+    private static final OrePrefixes[] CABLE_PREFIXES = { OrePrefixes.cableGt01, OrePrefixes.cableGt02,
+        OrePrefixes.cableGt04, OrePrefixes.cableGt08, OrePrefixes.cableGt12, OrePrefixes.cableGt16, };
 
     // Rubber output counts per cable size.
     // Matches GT's cableGtNN.mSecondaryMaterial definitions:
-    //   cableGt01 = 1 rubber plate, cableGt02 = 1, cableGt04 = 2,
-    //   cableGt08 = 3, cableGt12 = 4, cableGt16 = 5
+    // cableGt01 = 1 rubber plate, cableGt02 = 1, cableGt04 = 2,
+    // cableGt08 = 3, cableGt12 = 4, cableGt16 = 5
     private static final int[] RUBBER_PER_CABLE = { 1, 1, 2, 3, 4, 5 };
 
     public static void loadRecipes() {
@@ -159,8 +126,8 @@ public class ElectronicsMarketRecipePool {
         ItemStack outputTube = ItemList.Circuit_Parts_Vacuum_Tube.get(1);
 
         if (osmiridiumFoil == null || outputTube == null) {
-            AndgateTechnology.LOG.warn(
-                "Laser Vacuum Tube recipe skipped: missing Osmiridium foil or Vacuum Tube item reference.");
+            AndgateTechnology.LOG
+                .warn("Laser Vacuum Tube recipe skipped: missing Osmiridium foil or Vacuum Tube item reference.");
             return;
         }
 

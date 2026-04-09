@@ -26,12 +26,11 @@ import org.jetbrains.annotations.NotNull;
 import com.andgatech.AHTech.config.Config;
 import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
+import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-
-import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
-import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -120,9 +119,7 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
                 setEuModifier(getEuModifier());
                 setSpeedBonus(getSpeedBonus());
                 // Perfect overclock: time/4, power*4; Normal overclock: time/2, power*4
-                setOverclock(
-                    isEnablePerfectOverclock() ? 4 : 2,
-                    4);
+                setOverclock(isEnablePerfectOverclock() ? 4 : 2, 4);
                 return super.process();
             }
 
@@ -250,9 +247,7 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
                         .dot(1)
                         .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0))
                         .buildAndChain(GregTechAPI.sBlockCasings2, 0))
-                .addElement(
-                    'A',
-                    ofBlock(GregTechAPI.sBlockCasings2, 0))
+                .addElement('A', ofBlock(GregTechAPI.sBlockCasings2, 0))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -265,10 +260,10 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
      *
      * Layout (each slice is one Z-layer, front to back):
      * Layer 0 (front): HHHHH, HCCCH, HC~CH, HCCCH, HHHHH
-     * Layer 1:         ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
-     * Layer 2:         ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
-     * Layer 3:         ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
-     * Layer 4 (back):  ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
+     * Layer 1: ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
+     * Layer 2: ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
+     * Layer 3: ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
+     * Layer 4 (back): ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
      */
     // spotless:off
     public static final String[][] shape = new String[][] {
@@ -367,9 +362,7 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
             case TIER_II -> 16;
             default -> 4;
         };
-        maxParallel = (int) Math.min(
-            Config.MAX_PARALLEL_LIMIT,
-            (long) tierBaseParallel * (1 + voltageTier / 8));
+        maxParallel = (int) Math.min(Config.MAX_PARALLEL_LIMIT, (long) tierBaseParallel * (1 + voltageTier / 8));
 
         // Perfect overclock at tier III
         enablePerfectOverclock = structureTier >= TIER_III;
@@ -389,8 +382,7 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
         int aColorIndex, boolean aActive, boolean aRedstone) {
         int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
         if (side == facing) {
-            if (aActive) return new ITexture[] {
-                Textures.BlockIcons.getCasingTextureForId(casingIndex),
+            if (aActive) return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
                 TextureFactory.builder()
                     .addIcon(OVERLAY_FRONT_ASSEMBLY_LINE_ACTIVE)
                     .extFacing()
@@ -400,12 +392,10 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
                     .extFacing()
                     .glow()
                     .build() };
-            return new ITexture[] {
-                Textures.BlockIcons.getCasingTextureForId(casingIndex),
-                TextureFactory.builder()
-                    .addIcon(OVERLAY_FRONT_ASSEMBLY_LINE)
-                    .extFacing()
-                    .build(),
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex), TextureFactory.builder()
+                .addIcon(OVERLAY_FRONT_ASSEMBLY_LINE)
+                .extFacing()
+                .build(),
                 TextureFactory.builder()
                     .addIcon(OVERLAY_FRONT_ASSEMBLY_LINE_GLOW)
                     .extFacing()

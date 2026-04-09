@@ -18,6 +18,9 @@ import net.minecraft.item.crafting.ShapelessRecipes;
 import net.minecraftforge.oredict.ShapedOreRecipe;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
 
+import com.andgatech.AHTech.AndgateTechnology;
+import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
+
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.TierEU;
@@ -27,19 +30,18 @@ import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 
-import com.andgatech.AHTech.AndgateTechnology;
-import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
-
 /**
  * Automatically generates recycling (reverse) recipes for the Electronics Market.
  *
- * <p>At server startup this class scans all GregTech RecipeMaps and the Forge
+ * <p>
+ * At server startup this class scans all GregTech RecipeMaps and the Forge
  * CraftingManager to build a mapping of output items to their input materials.
  * For each unique output a single recycling recipe is registered in
  * {@link AHTechRecipeMaps#ElectronicsMarketRecipes} that takes the output item
  * as input and yields the original input materials as outputs.
  *
- * <p>The actual recovery rate (how many outputs the player receives) is applied
+ * <p>
+ * The actual recovery rate (how many outputs the player receives) is applied
  * at runtime by the machine's ProcessingLogic based on structure tier and voltage;
  * the recipes themselves declare full (100%) outputs.
  */
@@ -143,17 +145,12 @@ public class RecyclingRecipeGenerator {
                             count += processGTRecipe(recipe, outputToInputs);
                         } catch (Exception e) {
                             // Skip individual bad recipes without crashing
-                            AndgateTechnology.LOG.warn(
-                                "Skipping bad GT recipe in {}: {}",
-                                field.getName(),
-                                e.getMessage());
+                            AndgateTechnology.LOG
+                                .warn("Skipping bad GT recipe in {}: {}", field.getName(), e.getMessage());
                         }
                     }
                 } catch (IllegalAccessException e) {
-                    AndgateTechnology.LOG.warn(
-                        "Cannot access RecipeMap field {}: {}",
-                        field.getName(),
-                        e.getMessage());
+                    AndgateTechnology.LOG.warn("Cannot access RecipeMap field {}: {}", field.getName(), e.getMessage());
                 }
             }
         } catch (Exception e) {
@@ -211,7 +208,8 @@ public class RecyclingRecipeGenerator {
         int count = 0;
 
         try {
-            List<IRecipe> recipeList = CraftingManager.getInstance().getRecipeList();
+            List<IRecipe> recipeList = CraftingManager.getInstance()
+                .getRecipeList();
             if (recipeList == null) return 0;
 
             for (IRecipe recipe : recipeList) {
@@ -229,7 +227,8 @@ public class RecyclingRecipeGenerator {
                     // Skip bad recipes without crashing
                     AndgateTechnology.LOG.warn(
                         "Skipping crafting recipe ({}): {}",
-                        recipe.getClass().getSimpleName(),
+                        recipe.getClass()
+                            .getSimpleName(),
                         e.getMessage());
                 }
             }
@@ -252,8 +251,7 @@ public class RecyclingRecipeGenerator {
             if (recipe instanceof ShapedRecipes shaped) {
                 return consolidateIngredients(shaped.recipeItems);
             } else if (recipe instanceof ShapelessRecipes shapeless) {
-                return consolidateIngredients(
-                    shapeless.recipeItems.toArray(new ItemStack[0]));
+                return consolidateIngredients(shapeless.recipeItems.toArray(new ItemStack[0]));
             } else if (recipe instanceof ShapedOreRecipe shapedOre) {
                 return extractOreIngredients(Arrays.asList(shapedOre.getInput()));
             } else if (recipe instanceof ShapelessOreRecipe shapelessOre) {
@@ -263,7 +261,8 @@ public class RecyclingRecipeGenerator {
         } catch (Exception e) {
             AndgateTechnology.LOG.warn(
                 "Failed to extract ingredients from {}: {}",
-                recipe.getClass().getSimpleName(),
+                recipe.getClass()
+                    .getSimpleName(),
                 e.getMessage());
         }
         return null;
@@ -295,7 +294,9 @@ public class RecyclingRecipeGenerator {
             }
         }
 
-        return merged.isEmpty() ? null : merged.values().toArray(new ItemStack[0]);
+        return merged.isEmpty() ? null
+            : merged.values()
+                .toArray(new ItemStack[0]);
     }
 
     /**
@@ -327,7 +328,9 @@ public class RecyclingRecipeGenerator {
             }
         }
 
-        return merged.isEmpty() ? null : merged.values().toArray(new ItemStack[0]);
+        return merged.isEmpty() ? null
+            : merged.values()
+                .toArray(new ItemStack[0]);
     }
 
     /**
@@ -343,7 +346,7 @@ public class RecyclingRecipeGenerator {
         if (entry instanceof ItemStack stack) {
             if (stack.getItem() == null) return null;
             return GTOreDictUnificator.get(false, stack, true);
-        } else if (entry instanceof ArrayList<?> list) {
+        } else if (entry instanceof ArrayList<?>list) {
             if (list.isEmpty()) return null;
             // Use the first valid item from the ore dictionary list
             for (Object obj : list) {
@@ -363,7 +366,8 @@ public class RecyclingRecipeGenerator {
      * Iterates the output-to-inputs map and registers one recycling recipe per
      * unique output item in {@link AHTechRecipeMaps#ElectronicsMarketRecipes}.
      *
-     * <p>Each recycling recipe takes the original output item (1x) as input and
+     * <p>
+     * Each recycling recipe takes the original output item (1x) as input and
      * produces the original input materials as outputs. The actual recovery rate
      * is applied at runtime by the machine's ProcessingLogic based on structure
      * tier and voltage, so recipes declare full (100%) outputs here.
@@ -416,8 +420,7 @@ public class RecyclingRecipeGenerator {
                 registered++;
             } catch (Exception e) {
                 skipped++;
-                AndgateTechnology.LOG.warn(
-                    "Failed to register recycling recipe: {}", e.getMessage());
+                AndgateTechnology.LOG.warn("Failed to register recycling recipe: {}", e.getMessage());
             }
         }
 
@@ -435,10 +438,11 @@ public class RecyclingRecipeGenerator {
     /**
      * Checks whether the given ItemStack is a GT circuit board or PCB.
      *
-     * <p>Detection criteria:
+     * <p>
+     * Detection criteria:
      * <ul>
-     *   <li>Item unlocalizedName contains: "circuit_board", "circuitboard", "pcb", "boardraw"</li>
-     *   <li>Item is one of GT's known circuit board ItemList entries</li>
+     * <li>Item unlocalizedName contains: "circuit_board", "circuitboard", "pcb", "boardraw"</li>
+     * <li>Item is one of GT's known circuit board ItemList entries</li>
      * </ul>
      *
      * @param stack the ItemStack to check
@@ -449,9 +453,9 @@ public class RecyclingRecipeGenerator {
 
         // Check unlocalized name patterns
         try {
-            String unlocalizedName = stack.getUnlocalizedName().toLowerCase();
-            if (unlocalizedName.contains("circuit_board")
-                || unlocalizedName.contains("circuitboard")
+            String unlocalizedName = stack.getUnlocalizedName()
+                .toLowerCase();
+            if (unlocalizedName.contains("circuit_board") || unlocalizedName.contains("circuitboard")
                 || unlocalizedName.contains("pcb")
                 || unlocalizedName.contains("boardraw")) {
                 return true;

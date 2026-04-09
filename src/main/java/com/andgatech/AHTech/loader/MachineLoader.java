@@ -22,11 +22,8 @@ public class MachineLoader {
         // TST uses 18791-19080, so pick a different range.
 
         if (Config.Enable_ElectronicsMarket) {
-            ModItemList.ElectronicsMarket.set(
-                new ElectronicsMarket(
-                    35001,
-                    "ElectronicsMarket",
-                    "Electronics Market").getStackForm(1L));
+            ModItemList.ElectronicsMarket
+                .set(new ElectronicsMarket(35001, "ElectronicsMarket", "Electronics Market").getStackForm(1L));
         }
     }
 
