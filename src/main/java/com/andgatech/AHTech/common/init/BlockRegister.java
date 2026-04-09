@@ -1,7 +1,5 @@
 package com.andgatech.AHTech.common.init;
 
-import cpw.mods.fml.common.registry.GameRegistry;
-
 /**
  * Register all blocks and their tile entities with Forge.
  * Called from MaterialLoader.load() during preInit.
@@ -15,7 +13,8 @@ public class BlockRegister {
 
     private static void registryBlocks() {
         // Register blocks with Forge:
-        // GameRegistry.registerBlock(ModBlocks.MetaBlock01, ModBlocks.MetaBlock01.getItemClass(), ModBlocks.MetaBlock01.getUnlocalizedName());
+        // GameRegistry.registerBlock(ModBlocks.MetaBlock01, ModBlocks.MetaBlock01.getItemClass(),
+        // ModBlocks.MetaBlock01.getUnlocalizedName());
     }
 
     private static void registryBlockContainers() {

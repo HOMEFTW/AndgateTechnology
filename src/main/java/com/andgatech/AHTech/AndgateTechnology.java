@@ -31,9 +31,7 @@ public class AndgateTechnology {
     @Mod.Instance
     public static AndgateTechnology instance;
 
-    @SidedProxy(
-        clientSide = "com.andgatech.AHTech.ClientProxy",
-        serverSide = "com.andgatech.AHTech.CommonProxy")
+    @SidedProxy(clientSide = "com.andgatech.AHTech.ClientProxy", serverSide = "com.andgatech.AHTech.CommonProxy")
     public static CommonProxy proxy;
 
     // region FML Events

@@ -34,15 +34,14 @@ public class Config {
             1,
             Integer.MAX_VALUE,
             "Maximum parallel limit for all machines.");
-        DEFAULT_BATCH_MODE = configuration.getBoolean(
-            "DEFAULT_BATCH_MODE",
-            GENERAL,
-            DEFAULT_BATCH_MODE,
-            "Default batch mode for machines.");
+        DEFAULT_BATCH_MODE = configuration
+            .getBoolean("DEFAULT_BATCH_MODE", GENERAL, DEFAULT_BATCH_MODE, "Default batch mode for machines.");
 
         // Add your machine configs here:
-        // Enable_YourMachine = configuration.getBoolean("EnableYourMachine", "YourMachine", true, "Enable/disable YourMachine.");
-        // YourMachine_Parallel = configuration.getInt("Parallel", "YourMachine", 256, 1, Integer.MAX_VALUE, "Parallel of YourMachine.");
+        // Enable_YourMachine = configuration.getBoolean("EnableYourMachine", "YourMachine", true, "Enable/disable
+        // YourMachine.");
+        // YourMachine_Parallel = configuration.getInt("Parallel", "YourMachine", 256, 1, Integer.MAX_VALUE, "Parallel
+        // of YourMachine.");
 
         if (configuration.hasChanged()) {
             configuration.save();

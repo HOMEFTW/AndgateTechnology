@@ -1,7 +1,5 @@
 package com.andgatech.AHTech.common.init;
 
-import cpw.mods.fml.common.registry.GameRegistry;
-
 /**
  * Register all items with Forge.
  * Called from MaterialLoader.load() during preInit.

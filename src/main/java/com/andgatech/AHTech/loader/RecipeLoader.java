@@ -10,8 +10,8 @@ public class RecipeLoader {
         // Load all recipe pools here in the correct order.
         //
         // Example:
-        //   YourItemRecipes.loadRecipes();
-        //   YourMachineRecipes.loadRecipes();
+        // YourItemRecipes.loadRecipes();
+        // YourMachineRecipes.loadRecipes();
     }
 
     public static void loadRecipesPostInit() {
