@@ -13,7 +13,7 @@
 ### Machines
 | Name | Meta ID | Type | Status |
 |------|---------|------|--------|
-_(none yet)_
+| 美弱南电子市场 | 35001 | Multiblock | Design approved, not implemented |
 
 ### Items
 | Name | Registration | Description |
@@ -38,6 +38,10 @@ _(none yet)_
 |-----|---------|-------------|
 | MAX_PARALLEL_LIMIT | 256 | Max parallel for all machines |
 | DEFAULT_BATCH_MODE | false | Default batch mode for machines |
+| Stage1_BaseRecoveryRate | 0.30 | Stage I base recycling rate |
+| Stage2_BaseRecoveryRate | 0.60 | Stage II base recycling rate |
+| Stage3_BaseRecoveryRate | 0.85 | Stage III base recycling rate |
+| VoltageBonusPerTier | 0.02 | Recovery rate bonus per voltage tier |
 
 ### Mixins
 _(none yet)_

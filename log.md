@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-04-09: 美弱南电子市场设计
+
+### Completed
+- 完成美弱南电子市场多方块机器的设计文档
+- 文档路径: `docs/superpowers/specs/2026-04-09-electronics-market-design.md`
+- 修复 `.gitignore` 遗漏 `bin/` 目录的问题
+
+### Decisions Made
+- 单控制器方块 + 多方块结构组合判定阶段（而非三台独立机器）
+- Meta ID: 35001
+- 混合配方系统：硬编码特殊配方 + 自动解析回收配方
+- 配方来源覆盖 GT RecipeMaps + Forge CraftingManager（跨 mod 兼容）
+- 回收率 = 阶段基础率 + 电压加成，全部可配置
+- 电路板 100% 回收，不受阶段和电压影响
+
+---
+
 ## 2026-04-09: 强化 gtnh-dev-logging skill
 
 ### Completed

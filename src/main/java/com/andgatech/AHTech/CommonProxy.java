@@ -38,7 +38,7 @@ public class CommonProxy {
     }
 
     public void serverStarted(FMLServerStartedEvent event) {
-        // Server-side initialization
+        RecipeLoader.loadRecipesServerStarted();
     }
 
 }
