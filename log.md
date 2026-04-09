@@ -1,5 +1,33 @@
 # Development Log
 
+## 2026-04-09: 美弱南电子市场实现
+
+### Completed
+- 实现了完整的 8 步开发计划
+- Task 1: Config 配置项（Enable、回收率、电压加成）
+- Task 2: 自定义 RecipeMap `AHTechRecipeMaps.ElectronicsMarketRecipes`（9in/9out/4fin/4fout）
+- Task 3: 多方块控制器 `ElectronicsMarket`（继承 MTEExtendedPowerMultiBlockBase）
+- Task 4: 注册机器 Meta ID 35001 + ModItemList 条目
+- Task 5: 硬编码特殊配方（线缆拆解 36 材质×6 尺寸、激光真空管 Stage II+）
+- Task 6: 自动解析回收配方生成器（扫描 GT RecipeMaps + Forge CraftingManager）
+- Task 7: BUILD SUCCESSFUL 验证通过
+- 修复 `.gitignore` 遗漏 `bin/` 和 `chat.txt` 的问题
+
+### Issues Encountered
+- **TST 依赖问题**: ElectronicsMarket 初始引用了 TST 的 GTCM_MultiMachineBase 等类 → 改为直接继承 GT 的 MTEExtendedPowerMultiBlockBase
+- **RecipeMapBackend 导入路径错误**: `gregtech.api.recipe.backend.RecipeMapBackend` → `gregtech.api.recipe.RecipeMapBackend`
+- **TierEU 常量位置**: `GTValues.RECIPE_LV` 不存在 → 应使用 `TierEU.RECIPE_LV`
+- **Materials 命名**: `Tungstensteel` → `TungstenSteel`，`SuperconductorUXV` 不存在
+- **网络不稳定**: GitHub manifest 加载偶尔失败，重试后恢复
+
+### Decisions Made
+- 电压影响：speedBonus 按 tier 递减（1x/0.5x/0.25x），maxParallel 按 tier²×4×(1+voltage/8)
+- Stage III 启用 Perfect Overclock
+- 回收率在运行时由 ProcessingLogic 根据阶段和电压动态计算，不在配方注册时固定
+- 结构方块：Tier I=Tungstensteel Casing, Tier II=Stable Titanium Casing, Tier III=Prediction Casing
+
+---
+
 ## 2026-04-09: 美弱南电子市场设计
 
 ### Completed
