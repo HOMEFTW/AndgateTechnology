@@ -1,9 +1,9 @@
 package com.andgatech.AHTech.recipe.recipeMap;
 
-import gregtech.api.enums.GTUITextures;
+import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMapBuilder;
-import gregtech.api.recipe.backend.RecipeMapBackend;
+import gregtech.api.recipe.RecipeMapBackend;
 
 public class AHTechRecipeMaps {
 
