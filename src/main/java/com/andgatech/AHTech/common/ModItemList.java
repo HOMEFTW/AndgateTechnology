@@ -23,6 +23,7 @@ public enum ModItemList {
     // region Machines
     // Add your machines here, e.g.:
     // MyFirstMachine,
+    ElectronicsMarket,
     // endregion
 
     ;
