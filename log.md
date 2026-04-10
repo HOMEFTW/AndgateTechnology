@@ -1,5 +1,39 @@
 # Development Log
 
+## 2026-04-10: 模块化系统实现
+
+### Completed
+- 实现完整的 TST 风格模块化系统框架
+  - 接口层次：IModularizedMachine + 8 个子接口（并行/速度/超频/功耗/回收率/功能模块/聚合）
+  - 基类层次：ModularizedMachineBase → ModularizedMachineSupportAllModuleBase
+  - 舱口基类：ModularHatchBase（含 moduleTier 兼容性检查）
+- 实现 TST 标准模块各一个（并行/速度/超频/功耗）用于框架验证
+- 实现回收率模块 3 级（50%/70%/90%）
+- 实现执行核心（普通版，框架验证）
+- 实现功能模块系统 + 通用拆解模块
+- 重构 ElectronicsMarket 使用模块化架构
+  - 移除 stage 硬编码性能参数
+  - 一阶保留 30% 基础回收率
+  - 二阶以上由模块驱动
+  - validateRecipe 根据 specialValue 检查功能模块
+  - 输出应用回收率（电路板 100%）
+- 更新 Config（新增模块化配置，删除 Stage2/3/Voltage）
+- 更新 ModItemList（新增 9 个模块条目）
+- 更新 MachineLoader（注册模块舱口，Meta 35050-35070）
+- 更新 RecyclingRecipeGenerator（自动回收配方标记 specialValue(1)）
+- BUILD SUCCESSFUL 验证通过
+
+### Decisions Made
+- 模块化系统完整仿照 TST 的接口+基类+舱口三层架构
+- 新增 ISupportRecoveryRateController 和 ISupportFunctionModule 接口
+- 功能模块控制"能拆什么"，性能模块控制"拆多少"
+- 配方通过 specialValue 分类：0=硬编码, 1=通用拆解, 2=需二阶
+- 一阶无模块功能，二阶开始才能插入模块
+- 回收率取所有安装模块的最大值
+- 允许同类多模块叠加效果
+
+---
+
 ## 2026-04-09: 自定义 UI 与激光真空管修复
 
 ### Completed

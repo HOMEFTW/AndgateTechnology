@@ -13,7 +13,16 @@
 ### Machines
 | Name | Meta ID | Type | Status |
 |------|---------|------|--------|
-| 美弱南电子市场 | 35001 | Multiblock | Implemented, placeholder structure |
+| 美弱南电子市场 | 35001 | Multiblock | Implemented, modularized (Stage I hardcoded, Stage II+ module-driven) |
+| 并行控制器 Lv1 | 35050 | Modular Hatch | Framework validation |
+| 速度控制器 Lv1 | 35051 | Modular Hatch | Framework validation |
+| 超频控制器 Lv1 | 35052 | Modular Hatch | Framework validation |
+| 功耗控制器 Lv1 | 35053 | Modular Hatch | Framework validation |
+| 回收率模块 Lv1 | 35054 | Modular Hatch | Recovery 50% |
+| 回收率模块 Lv2 | 35055 | Modular Hatch | Recovery 70% |
+| 回收率模块 Lv3 | 35056 | Modular Hatch | Recovery 90% |
+| 执行核心 | 35060 | Modular Hatch | Framework validation |
+| 通用拆解模块 | 35070 | Function Module | Activates auto-recycling recipes |
 
 Base class: `MTEExtendedPowerMultiBlockBase<ElectronicsMarket>`
 Structure tier: `ofBlocksTiered()` — Tier I: Tungstensteel Casing, Tier II: Stable Titanium Casing, Tier III: Prediction Casing
@@ -53,9 +62,10 @@ _(none yet)_
 | DEFAULT_BATCH_MODE | false | Default batch mode for machines |
 | Enable_ElectronicsMarket | true | Enable/disable Electronics Market |
 | Stage1_BaseRecoveryRate | 0.30 | Stage I base recycling rate |
-| Stage2_BaseRecoveryRate | 0.60 | Stage II base recycling rate |
-| Stage3_BaseRecoveryRate | 0.90 | Stage III base recycling rate |
-| VoltageBonusPerTier | 0.02 | Recovery rate bonus per voltage tier |
+| EnableModularizedMachineSystem | true | Enable/disable modularization system |
+| RecoveryModuleLv1Rate | 0.50 | Recovery rate for Lv1 module |
+| RecoveryModuleLv2Rate | 0.70 | Recovery rate for Lv2 module |
+| RecoveryModuleLv3Rate | 0.90 | Recovery rate for Lv3 module |
 
 ### Mixins
 _(none yet)_
@@ -65,6 +75,13 @@ _(none yet)_
 - `com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps` — Custom RecipeMap definitions
 - `com.andgatech.AHTech.recipe.machineRecipe.ElectronicsMarketRecipePool` — Hardcoded recipes
 - `com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator` — Auto-parse generator
+
+## Key Classes — Modularization
+- `com.andgatech.AHTech.common.modularizedMachine.ModularizedMachineBase` — Module-aware multiblock base
+- `com.andgatech.AHTech.common.modularizedMachine.ModularizedMachineSupportAllModuleBase` — Full parameter support
+- `com.andgatech.AHTech.common.modularizedMachine.modularHatches.ModularHatchBase` — Module hatch base class
+- `com.andgatech.AHTech.common.modularizedMachine.modularHatches.RecoveryRateModule` — Recovery rate controller
+- `com.andgatech.AHTech.common.modularizedMachine.modularHatches.GeneralDisassemblyModule` — Function module
 
 ## Dependencies
 - GT5-Unofficial (GregTech + merged TecTech)
@@ -79,3 +96,13 @@ _(none yet)_
 - Resource namespace: `assets/andgatetechnology/`
 - Circuit boards detected by unlocalizedName patterns, marked for 100% recovery
 - Recycling rate applied at runtime by ProcessingLogic, not at recipe registration
+
+## Architecture Notes — Modularization System
+- Base class: ModularizedMachineSupportAllModuleBase<T> extends ModularizedMachineBase<T> extends MTEExtendedPowerMultiBlockBase<T>
+- Module discovery: addToMachineList() detects ModularHatchBase in structure
+- Static modules: applied during checkMachine() via onCheckMachine()
+- Dynamic modules: applied during checkProcessing() via onCheckProcessing() (reserved for future)
+- Tier I: hardcoded 30% recovery, no modules, hardcoded recipes only
+- Tier II+: recovery/performance determined by installed modules; function modules gate recipe categories
+- Recipe classification: specialValue(0)=hardcoded, specialValue(1)=GENERAL_DISASSEMBLY, specialValue(2)=Stage II+ required
+- Recovery rate applied at runtime to output items; circuit boards always 100%
