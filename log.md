@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-04-10: TST 模块移植与互通
+
+### Completed
+- 将 TST 完整模块系统移植到 AHTech（35 个标准模块）
+  - 静态并行控制器 T1-T8：8/128/2048/32768/524288/8388608/134217728/MAX
+  - 动态并行控制器 T1-T8：同上参数
+  - 静态速度控制器 T1-T8：2x/4x/8x/16x/32x/64x/128x/256x
+  - 动态速度控制器 T1-T8：同上参数
+  - 功耗控制器 T1-T8：0.95/0.9/0.85/0.8/0.75/0.7/0.5/0.25
+  - 超频控制器：低速完美(2,2) / 完美(4,4) / 奇点(8,4)
+  - 执行核心：普通 / 高级(无线EU) / 完美(1秒完成)
+- 实现 TST 模块互通
+  - ModularizedMachineBase 可识别 TST 的 ModularHatchBase
+  - 通过 instanceof 检测 TST 模块类型，应用效果到 AHTech 机器
+  - MachineLoader 检测 TST 是否安装，避免重复注册
+- 使用编译时存根类实现互通（不依赖 TST JAR）
+- BUILD SUCCESSFUL 验证通过
+
+### Decisions Made
+- 使用存根类而非 Maven 依赖（TST 未发布到 GTNH Maven）
+- TST 存根类从输出 JAR 中排除，避免类冲突
+- TST 安装时跳过标准模块注册，AHTech 专属模块始终注册
+- 执行核心暂仅做发现/记录，深度集成留待后续
+
+---
+
 ## 2026-04-10: 模块化系统实现
 
 ### Completed
