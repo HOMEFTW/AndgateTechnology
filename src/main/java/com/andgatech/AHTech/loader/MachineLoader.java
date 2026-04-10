@@ -41,14 +41,45 @@ public class MachineLoader {
         }
 
         if (Config.EnableModularizedMachineSystem) {
-            registerModularHatches();
+            boolean tstLoaded = isTSTLoaded();
+            registerModularHatches(tstLoaded);
         }
     }
 
-    private static void registerModularHatches() {
+    /**
+     * Checks if Twist Space Technology (TST) mod is loaded at runtime.
+     */
+    private static boolean isTSTLoaded() {
+        try {
+            Class.forName("com.Nxer.TwistSpaceTechnology.TwistSpaceTechnology");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    private static void registerModularHatches(boolean tstLoaded) {
         int id = MODULAR_BASE;
 
-        // region Static Parallel Controllers (35050-35057)
+        // Standard modules that overlap with TST: only register if TST is NOT installed
+        // (parallel, speed, overclock, power consumption, execution core)
+        if (!tstLoaded) {
+            id = registerStandardModules(id);
+        } else {
+            // Skip the IDs that would have been used by standard modules
+            id = MODULAR_BASE + 46; // 8 static parallel + 8 dynamic parallel + 8 static speed
+                                    // + 8 dynamic speed + 8 power consumption + 3 overclock + 3 execution core = 46
+        }
+
+        // AHTech-exclusive modules: always register (TST does not have these)
+        id = registerAHTechExclusiveModules(id);
+    }
+
+    /**
+     * Registers standard modular hatches that overlap with TST's modules.
+     * Only called when TST is NOT installed.
+     */
+    private static int registerStandardModules(int id) {
         ModItemList.StaticParallelControllerT1.set(
             new StaticParallelController(
                 id++,
@@ -374,7 +405,14 @@ public class MachineLoader {
             .set(new PerfectExecutionCore(id++, "PerfectExecutionCore", "Perfect Execution Core", T3).getStackForm(1L));
         // endregion
 
-        // region Recovery Rate (35096-35098)
+        return id;
+    }
+
+    /**
+     * Registers AHTech-exclusive modular hatches (recovery rate, function modules).
+     * Always registered regardless of TST presence.
+     */
+    private static int registerAHTechExclusiveModules(int id) {
         ModItemList.RecoveryRateLv1.set(
             new RecoveryRateModule(id++, "RecoveryRateLv1", "Recovery Rate Lv1", T1, Config.RecoveryModuleLv1Rate)
                 .getStackForm(1L));
@@ -391,6 +429,8 @@ public class MachineLoader {
             new GeneralDisassemblyModule(id++, "GeneralDisassemblyModule", "General Disassembly Module", T1)
                 .getStackForm(1L));
         // endregion
+
+        return id;
     }
 
     public static void loadMachinePostInit() {

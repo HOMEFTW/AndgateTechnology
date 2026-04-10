@@ -37,6 +37,10 @@ dependencies {
     // Thaumcraft (required for TC integration)
     // implementation("thaumcraft:Thaumcraft:1.7.10-4.2.3.5:dev")
 
+    // TST (Twist Space Technology) interop is handled via compile-time stub classes.
+    // Stubs are in src/main/java/com/Nxer/... and excluded from the output jar (see build.gradle).
+    // At runtime, the real TST classes (if present) are used; TST presence is detected via Class.forName().
+
     // IC2
     implementation("net.industrial-craft:industrialcraft-2:2.2.828-experimental:dev")
 

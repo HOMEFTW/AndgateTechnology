@@ -5,6 +5,13 @@ plugins {
     id 'com.gtnewhorizons.gtnhconvention'
 }
 
+// Exclude TST stub classes from the final jar to avoid class conflicts with the real TST mod.
+// The stubs in src/main/java/com/Nxer/... provide compile-time type checking for TST interop,
+// but at runtime the real TST classes (if present) should be used instead.
+jar {
+    exclude 'com/Nxer/**'
+}
+
 minecraft {
     extraRunJvmArguments.add("-Xmx4G")
     extraRunJvmArguments.add("-Xms4G")

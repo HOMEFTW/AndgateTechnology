@@ -3,6 +3,7 @@ package com.andgatech.AHTech.common.modularizedMachine;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -14,6 +15,7 @@ import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IModularHat
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IStaticModularHatch;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.ModularHatchBase;
 
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEExtendedPowerMultiBlockBase;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -34,6 +36,13 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
     protected Map<ModularHatchType, Collection<IStaticModularHatch>> staticModularHatches = new HashMap<>();
     protected Map<ModularHatchType, Collection<IDynamicModularHatch>> dynamicModularHatches = new HashMap<>();
     protected Collection<IModularHatch> allModularHatches = new ArrayList<>();
+
+    /**
+     * Stores discovered TST modular hatches. Only used when TST is installed.
+     * TST hatches do not implement AHTech's IStaticModularHatch, so they are handled
+     * separately through an adapter pattern.
+     */
+    protected final List<Object> tstModularHatches = new ArrayList<>();
 
     protected ModularizedMachineBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -110,6 +119,7 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
 
     /**
      * Attempts to add a tile entity as a modular hatch if it is one.
+     * First checks AHTech modular hatches, then falls back to TST modular hatches if TST is loaded.
      *
      * @param aTileEntity      the tile entity to check
      * @param aBaseCasingIndex the casing texture index
@@ -118,33 +128,146 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
     protected boolean addAnyModularHatchToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         var aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (!(aMetaTileEntity instanceof ModularHatchBase modularHatch)) return false;
 
-        ModularHatchType type = modularHatch.getType();
-        if (!getSupportedModularHatchTypes().contains(type)) return false;
+        // Try AHTech modular hatches first
+        if (aMetaTileEntity instanceof ModularHatchBase modularHatch) {
+            ModularHatchType type = modularHatch.getType();
+            if (!getSupportedModularHatchTypes().contains(type)) return false;
 
-        // Update texture like standard hatches
-        modularHatch.updateTexture(aBaseCasingIndex);
-        modularHatch.updateCraftingIcon(this.getMachineCraftingIcon());
+            // Update texture like standard hatches
+            modularHatch.updateTexture(aBaseCasingIndex);
+            modularHatch.updateCraftingIcon(this.getMachineCraftingIcon());
 
-        // Add to the main modularHatches map
-        modularHatches.computeIfAbsent(type, k -> new ArrayList<>())
-            .add(modularHatch);
+            // Add to the main modularHatches map
+            modularHatches.computeIfAbsent(type, k -> new ArrayList<>())
+                .add(modularHatch);
 
-        // Add to the flat collection of all modular hatches
-        allModularHatches.add(modularHatch);
+            // Add to the flat collection of all modular hatches
+            allModularHatches.add(modularHatch);
 
-        // Add to static or dynamic sub-collections based on interface
-        if (modularHatch instanceof IStaticModularHatch staticHatch) {
-            staticModularHatches.computeIfAbsent(type, k -> new ArrayList<>())
-                .add(staticHatch);
+            // Add to static or dynamic sub-collections based on interface
+            if (modularHatch instanceof IStaticModularHatch staticHatch) {
+                staticModularHatches.computeIfAbsent(type, k -> new ArrayList<>())
+                    .add(staticHatch);
+            }
+            if (modularHatch instanceof IDynamicModularHatch dynamicHatch) {
+                dynamicModularHatches.computeIfAbsent(type, k -> new ArrayList<>())
+                    .add(dynamicHatch);
+            }
+
+            return true;
         }
-        if (modularHatch instanceof IDynamicModularHatch dynamicHatch) {
-            dynamicModularHatches.computeIfAbsent(type, k -> new ArrayList<>())
-                .add(dynamicHatch);
+
+        // Try TST modular hatches if TST is loaded
+        if (isTSTLoaded()) {
+            return addTSTModularHatchToMachineList(aTileEntity, aBaseCasingIndex);
         }
 
-        return true;
+        return false;
+    }
+
+    // endregion
+
+    // region TST Compatibility
+
+    /**
+     * Checks if Twist Space Technology (TST) mod is loaded at runtime.
+     * All TST class references must be guarded by this check.
+     */
+    protected static boolean isTSTLoaded() {
+        try {
+            Class.forName("com.Nxer.TwistSpaceTechnology.TwistSpaceTechnology");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Attempts to add a TST modular hatch to the machine's TST hatch list.
+     * TST hatches are stored separately because they don't implement AHTech's
+     * {@link IStaticModularHatch} interface (different onCheckMachine parameter types).
+     *
+     * @param aTileEntity      the tile entity to check
+     * @param aBaseCasingIndex the casing texture index
+     * @return true if the hatch was recognized as a TST modular hatch and added
+     */
+    protected boolean addTSTModularHatchToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
+        if (mte == null) return false;
+
+        // Check if this is a TST ModularHatchBase (all TST module hatches extend this)
+        if (mte instanceof com.Nxer.TwistSpaceTechnology.common.modularizedMachine.modularHatches.ModularHatchBase) {
+            tstModularHatches.add(mte);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Applies the effects of all discovered TST modular hatches to this machine.
+     * Called after {@link #applyModularStaticSettings()} so that TST hatches
+     * can stack with any AHTech hatches already applied.
+     */
+    protected void applyTSTModularHatches() {
+        if (tstModularHatches.isEmpty()) return;
+        for (Object hatch : tstModularHatches) {
+            applyTSTHatchEffect(hatch);
+        }
+    }
+
+    /**
+     * Applies the effect of a single TST modular hatch by checking its concrete type
+     * and calling the corresponding AHTech support interface method.
+     * Uses instanceof checks against TST base classes (guarded by compileOnly dependency).
+     */
+    protected void applyTSTHatchEffect(Object hatch) {
+        // Parallel Controller
+        if (hatch instanceof com.Nxer.TwistSpaceTechnology.common.modularizedMachine.modularHatches.ParallelControllers.StaticParallelControllerBase spc) {
+            if (this instanceof ISupportParallelController ctrl) {
+                int current = ctrl.getStaticParallelParameterValue();
+                if (current == Integer.MAX_VALUE) return;
+                int toAdd = spc.getParallel();
+                if (current >= Integer.MAX_VALUE - toAdd) {
+                    ctrl.setStaticParallelParameter(Integer.MAX_VALUE);
+                } else {
+                    ctrl.setStaticParallelParameter(current + toAdd);
+                }
+            }
+        }
+        // Speed Controller
+        else if (hatch instanceof com.Nxer.TwistSpaceTechnology.common.modularizedMachine.modularHatches.SpeedConstrollers.StaticSpeedControllerBase ssc) {
+            if (this instanceof ISupportSpeedController ctrl) {
+                float current = ctrl.getStaticSpeedParameterValue();
+                float speedBonus = ssc.getSpeedBonus();
+                if (current > 0 && speedBonus > 0) {
+                    ctrl.setStaticSpeedParameterValue(current * speedBonus);
+                }
+            }
+        }
+        // Overclock Controller
+        else if (hatch instanceof com.Nxer.TwistSpaceTechnology.common.modularizedMachine.modularHatches.OverclockControllers.StaticOverclockControllerBase soc) {
+            if (this instanceof ISupportOverclockController ctrl) {
+                com.Nxer.TwistSpaceTechnology.common.misc.OverclockType tstType = soc.getOverclockType();
+                // Convert TST OverclockType to AHTech OverclockType by matching timeReduction/powerIncrease values
+                OverclockType ahtechType = OverclockType
+                    .checkOverclockType(tstType.timeReduction, tstType.powerIncrease);
+                ctrl.setOverclockType(ahtechType);
+            }
+        }
+        // Power Consumption Controller
+        else if (hatch instanceof com.Nxer.TwistSpaceTechnology.common.modularizedMachine.modularHatches.PowerConsumptionControllers.StaticPowerConsumptionControllerBase spcc) {
+            if (this instanceof ISupportPowerConsumptionController ctrl) {
+                float current = ctrl.getStaticPowerConsumptionParameterValue();
+                float multiplier = spcc.getPowerConsumptionMultiplier();
+                if (current > 0 && multiplier > 0) {
+                    ctrl.setStaticPowerConsumptionParameterValue(current * multiplier);
+                }
+            }
+        }
+        // Execution Core - TST execution cores need deeper integration (shared progress management),
+        // so for now we only discover and record them.
     }
 
     // endregion
@@ -201,6 +324,16 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
         }
     }
 
+    /**
+     * Overrides the default to also apply TST modular hatch effects after AHTech static settings.
+     */
+    @Override
+    public void checkModularStaticSettings() {
+        resetModularStaticSettings();
+        applyModularStaticSettings();
+        applyTSTModularHatches();
+    }
+
     // endregion
 
     // region Modular Dynamic Parameters
@@ -224,6 +357,7 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
         staticModularHatches.clear();
         dynamicModularHatches.clear();
         allModularHatches.clear();
+        tstModularHatches.clear();
     }
 
     @Override
