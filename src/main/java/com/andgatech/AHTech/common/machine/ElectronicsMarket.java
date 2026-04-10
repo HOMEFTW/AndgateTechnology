@@ -24,7 +24,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-import com.andgatech.AHTech.config.Config;
+import com.andgatech.AHTech.common.modularizedMachine.FunctionType;
+import com.andgatech.AHTech.common.modularizedMachine.ModularizedMachineSupportAllModuleBase;
+import com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator;
 import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
@@ -43,7 +45,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
-import gregtech.api.metatileentity.implementations.MTEExtendedPowerMultiBlockBase;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -56,9 +57,9 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 /**
  * Electronics Market - a multiblock machine that processes electronics recycling recipes.
  * Structure tier (I/II/III) is determined by the casing blocks used in the structure.
- * Higher tiers and higher voltage provide better speed and parallel.
+ * Tier I uses hardcoded parameters; Tier II/III performance is driven by installed modular hatches.
  */
-public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<ElectronicsMarket>
+public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<ElectronicsMarket>
     implements IConstructable, ISurvivalConstructable {
 
     // region Structure Tier Constants
@@ -70,10 +71,6 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
 
     // region Instance Fields
     private int structureTier = TIER_NONE;
-    protected boolean enablePerfectOverclock = false;
-    protected int maxParallel = 1;
-    protected float euModifier = 1;
-    protected float speedBonus = 1;
     // endregion
 
     // region Class Constructor
@@ -97,6 +94,24 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
 
     // endregion
 
+    // region Structure Tier
+
+    @Override
+    public int getStructureTier() {
+        return structureTier;
+    }
+
+    // endregion
+
+    // region Modular Hatch Configuration
+
+    @Override
+    protected boolean canMultiplyModularHatchType() {
+        return true; // Allow multiple hatches of the same type to stack
+    }
+
+    // endregion
+
     // region Processing Logic
 
     @Override
@@ -111,9 +126,20 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
             @NotNull
             @Override
             protected CheckRecipeResult validateRecipe(@NotNull GTRecipe recipe) {
-                // Structure tier gates which recipes are available
-                if (structureTier < TIER_I) {
-                    return CheckRecipeResultRegistry.insufficientMachineTier(structureTier);
+                if (getStructureTier() < TIER_I) {
+                    return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
+                }
+                // Tier I can only use base recipes (specialValue == 0 or default)
+                if (getStructureTier() == TIER_I && recipe.mSpecialValue > 0) {
+                    return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
+                }
+                // specialValue == 1 requires GENERAL_DISASSEMBLY function module
+                if (recipe.mSpecialValue == 1 && !hasFunction(FunctionType.GENERAL_DISASSEMBLY)) {
+                    return CheckRecipeResultRegistry.NO_RECIPE;
+                }
+                // specialValue == 2 requires tier II or above
+                if (recipe.mSpecialValue == 2 && getStructureTier() < TIER_II) {
+                    return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
@@ -121,47 +147,48 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
             @NotNull
             @Override
             public CheckRecipeResult process() {
-                setEuModifier(getEuModifier());
-                setSpeedBonus(getSpeedBonus());
-                // Perfect overclock: time/4, power*4; Normal overclock: time/2, power*4
-                setOverclock(isEnablePerfectOverclock() ? 4 : 2, 4);
+                setEuModifier(ElectronicsMarket.this.getEuModifier());
+                setSpeedBonus(ElectronicsMarket.this.getSpeedBonus());
+                setOverclock(ElectronicsMarket.this.isEnablePerfectOverclock() ? 4 : 2, 4);
                 return super.process();
             }
-
-        }.setMaxParallelSupplier(this::getMaxParallelRecipes);
-    }
-
-    protected boolean isEnablePerfectOverclock() {
-        return enablePerfectOverclock;
-    }
-
-    protected float getEuModifier() {
-        return euModifier;
-    }
-
-    protected float getSpeedBonus() {
-        return speedBonus;
-    }
-
-    public int getMaxParallelRecipes() {
-        return maxParallel;
+        }.setMaxParallelSupplier(ElectronicsMarket.this::getMaxParallelRecipes);
     }
 
     // endregion
 
-    // region Maintenance / Repair
+    // region Check Processing with Recovery Rate
+
+    @NotNull
+    @Override
+    protected CheckRecipeResult checkProcessingMM() {
+        CheckRecipeResult result = super.checkProcessingMM();
+        if (result.wasSuccessful()) {
+            applyRecoveryRate();
+        }
+        return result;
+    }
 
     /**
-     * Repairs the machine by enabling all tools (no maintenance required).
+     * Applies the recovery rate to output items. Circuit boards are always recovered at 100%.
      */
-    public void repairMachine() {
-        mHardHammer = true;
-        mSoftMallet = true;
-        mScrewdriver = true;
-        mCrowbar = true;
-        mSolderingTool = true;
-        mWrench = true;
+    private void applyRecoveryRate() {
+        float rate = getRecoveryRate();
+        if (rate >= 1.0f || mOutputItems == null) return;
+
+        for (int i = 0; i < mOutputItems.length; i++) {
+            if (mOutputItems[i] == null) continue;
+            if (RecyclingRecipeGenerator.isCircuitBoard(mOutputItems[i])) continue;
+            int original = mOutputItems[i].stackSize;
+            if (original <= 0) continue;
+            int recovered = Math.max(1, Math.round(original * rate));
+            mOutputItems[i].stackSize = recovered;
+        }
     }
+
+    // endregion
+
+    // region Maintenance
 
     @Override
     public boolean getDefaultHasMaintenanceChecks() {
@@ -176,22 +203,12 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("structureTier", structureTier);
-        aNBT.setBoolean("enablePerfectOverclock", enablePerfectOverclock);
-        aNBT.setInteger("maxParallel", maxParallel);
-        aNBT.setFloat("euModifier", euModifier);
-        aNBT.setFloat("speedBonus", speedBonus);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         structureTier = aNBT.getInteger("structureTier");
-        enablePerfectOverclock = aNBT.getBoolean("enablePerfectOverclock");
-        maxParallel = Math.max(aNBT.getInteger("maxParallel"), 1);
-        euModifier = aNBT.getFloat("euModifier");
-        if (euModifier <= 0) euModifier = 1;
-        speedBonus = aNBT.getFloat("speedBonus");
-        if (speedBonus <= 0) speedBonus = 1;
     }
 
     // endregion
@@ -330,51 +347,18 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
             true);
     }
 
-    /**
-     * Calculates the voltage tier from the machine's total available EU.
-     * 0 = ULV, 1 = LV, 2 = MV, 3 = HV, etc.
-     */
-    private int getTotalPowerTier() {
-        long totalEu = getMaxInputEu();
-        if (totalEu <= 0) return 0;
-        return (int) Math.round(1 + Math.max(0, (Math.log(totalEu) / Math.log(2) - 5) / 2));
-    }
-
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
-        repairMachine();
+    public boolean checkMachineMM(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         structureTier = TIER_NONE;
         boolean sign = checkPiece(STRUCTURE_PIECE_MAIN, horizontalOffSet, verticalOffSet, depthOffSet);
         if (!sign || structureTier < TIER_I) {
             return false;
         }
-
-        // Compute speed bonus and parallel based on structure tier and voltage
-        int voltageTier = getTotalPowerTier();
-
-        // Speed bonus: higher tiers are faster
-        // Tier I: 1x, Tier II: 2x, Tier III: 4x
-        speedBonus = switch (structureTier) {
-            case TIER_III -> 1.0F / 4.0F;
-            case TIER_II -> 1.0F / 2.0F;
-            default -> 1.0F;
-        };
-
-        // Parallel: tier base * voltage factor
-        // Tier I: 4, Tier II: 16, Tier III: 64, multiplied by (1 + voltageTier / 8)
-        int tierBaseParallel = switch (structureTier) {
-            case TIER_III -> 64;
-            case TIER_II -> 16;
-            default -> 4;
-        };
-        maxParallel = (int) Math.min(Config.MAX_PARALLEL_LIMIT, (long) tierBaseParallel * (1 + voltageTier / 8));
-
-        // Perfect overclock at tier III
-        enablePerfectOverclock = structureTier >= TIER_III;
-
-        // EU modifier: no discount by default
-        euModifier = 1.0F;
-
+        // Tier I base parallel: 4 (staticParallel=3, plus base +1 from getMaxParallelRecipes = 4)
+        if (structureTier == TIER_I) {
+            setStaticParallelParameter(3);
+        }
+        // Tier II/III: parallel, speed, overclock, recovery rate are driven by installed modules
         return true;
     }
 
@@ -419,11 +403,11 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType("Electronics Market")
             .addInfo("Recycles electronics into raw materials.")
-            .addInfo("Structure tier determines available recipes and performance.")
-            .addInfo("Tier I: Robust Tungstensteel Casing - Basic recipes")
-            .addInfo("Tier II: Stable Titanium Casing - Advanced recipes")
-            .addInfo("Tier III: Prediction Casing - All recipes + Perfect Overclock")
-            .addInfo("Higher voltage tiers increase parallel.")
+            .addInfo("Structure tier determines available recipes.")
+            .addInfo("Tier I: Robust Tungstensteel Casing - Basic recipes, 30% recovery rate")
+            .addInfo("Tier II: Stable Titanium Casing - Advanced recipes + modular hatches")
+            .addInfo("Tier III: Prediction Casing - All recipes + modular hatches")
+            .addInfo("Install modular hatches in 'H' slots to boost performance.")
             .addSeparator()
             .beginStructureBlock(5, 5, 5, false)
             .addController("Front center")
@@ -459,40 +443,53 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
             .setPos(6, 73)
             .setSize(80, 10));
 
-        // Parallel display (synced)
+        // Parallel display (synced via getter)
         builder
             .widget(
                 new TextWidget()
-                    .setStringSupplier(() -> StatCollector.translateToLocalFormatted("AHTech.UI.Parallel", maxParallel))
+                    .setStringSupplier(
+                        () -> StatCollector.translateToLocalFormatted("AHTech.UI.Parallel", getMaxParallelRecipes()))
                     .setDefaultColor(0x55FFFF)
                     .setPos(6, 83)
                     .setSize(80, 10))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> maxParallel, val -> maxParallel = val));
+            .widget(new FakeSyncWidget.IntegerSyncer(this::getMaxParallelRecipes, val -> {}));
 
-        // Speed bonus display (synced via double)
+        // Speed bonus display (synced via getter)
         builder
             .widget(
-                new TextWidget()
-                    .setStringSupplier(
-                        () -> StatCollector
-                            .translateToLocalFormatted("AHTech.UI.Speed", String.format("%.0f%%", speedBonus * 100)))
+                new TextWidget().setStringSupplier(
+                    () -> StatCollector
+                        .translateToLocalFormatted("AHTech.UI.Speed", String.format("%.0f%%", getSpeedBonus() * 100)))
                     .setDefaultColor(0xFFFF55)
                     .setPos(6, 93)
                     .setSize(80, 10))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) speedBonus, val -> speedBonus = val.floatValue()));
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getSpeedBonus(), val -> {}));
 
-        // Perfect overclock indicator (synced)
+        // Recovery rate display
         builder
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> enablePerfectOverclock ? StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.On")
-                            : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off"))
-                    .setDefaultColor(enablePerfectOverclock ? 0x55FF55 : 0xFF5555)
+                        () -> StatCollector.translateToLocalFormatted(
+                            "AHTech.UI.Recovery",
+                            String.format("%.0f%%", getRecoveryRate() * 100)))
+                    .setDefaultColor(0x55FFFF)
                     .setPos(6, 103)
                     .setSize(80, 10))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getRecoveryRate(), val -> {}));
+
+        // Perfect overclock indicator (synced via getter)
+        builder
             .widget(
-                new FakeSyncWidget.BooleanSyncer(() -> enablePerfectOverclock, val -> enablePerfectOverclock = val));
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> isEnablePerfectOverclock()
+                            ? StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.On")
+                            : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off"))
+                    .setDefaultColor(isEnablePerfectOverclock() ? 0x55FF55 : 0xFF5555)
+                    .setPos(6, 113)
+                    .setSize(80, 10))
+            .widget(new FakeSyncWidget.BooleanSyncer(this::isEnablePerfectOverclock, val -> {}));
     }
 
     // endregion
