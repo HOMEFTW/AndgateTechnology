@@ -18,6 +18,7 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -31,6 +32,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.api.screen.ModularWindow;
+import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -430,6 +435,64 @@ public class ElectronicsMarket extends MTEExtendedPowerMultiBlockBase<Electronic
             .addEnergyHatch("Any casing", 1)
             .toolTipFinisher("AHTech");
         return tt;
+    }
+
+    // endregion
+
+    // region UI
+
+    @Override
+    public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
+        super.addUIWidgets(builder, buildContext);
+
+        // Stage display (synced from server)
+        builder.widget(new TextWidget().setStringSupplier(() -> {
+            String tierName = switch (structureTier) {
+                case TIER_I -> "I";
+                case TIER_II -> "II";
+                case TIER_III -> "III";
+                default -> "?";
+            };
+            return StatCollector.translateToLocalFormatted("AHTech.UI.Stage", tierName);
+        })
+            .setDefaultColor(0x55FF55)
+            .setPos(6, 73)
+            .setSize(80, 10));
+
+        // Parallel display (synced)
+        builder
+            .widget(
+                new TextWidget()
+                    .setStringSupplier(() -> StatCollector.translateToLocalFormatted("AHTech.UI.Parallel", maxParallel))
+                    .setDefaultColor(0x55FFFF)
+                    .setPos(6, 83)
+                    .setSize(80, 10))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> maxParallel, val -> maxParallel = val));
+
+        // Speed bonus display (synced via double)
+        builder
+            .widget(
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> StatCollector
+                            .translateToLocalFormatted("AHTech.UI.Speed", String.format("%.0f%%", speedBonus * 100)))
+                    .setDefaultColor(0xFFFF55)
+                    .setPos(6, 93)
+                    .setSize(80, 10))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) speedBonus, val -> speedBonus = val.floatValue()));
+
+        // Perfect overclock indicator (synced)
+        builder
+            .widget(
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> enablePerfectOverclock ? StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.On")
+                            : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off"))
+                    .setDefaultColor(enablePerfectOverclock ? 0x55FF55 : 0xFF5555)
+                    .setPos(6, 103)
+                    .setSize(80, 10))
+            .widget(
+                new FakeSyncWidget.BooleanSyncer(() -> enablePerfectOverclock, val -> enablePerfectOverclock = val));
     }
 
     // endregion

@@ -413,6 +413,7 @@ public class RecyclingRecipeGenerator {
                 GTValues.RA.stdBuilder()
                     .itemInputs(GTUtility.copyAmountUnsafe(1, inputStack))
                     .itemOutputs(outputs)
+                    .specialValue(1)
                     .eut(TierEU.RECIPE_LV)
                     .duration(200)
                     .addTo(AHTechRecipeMaps.ElectronicsMarketRecipes);

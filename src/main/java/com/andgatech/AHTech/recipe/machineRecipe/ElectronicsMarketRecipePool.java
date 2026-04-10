@@ -7,13 +7,13 @@ import com.andgatech.AHTech.AndgateTechnology;
 import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
 
 import gregtech.api.enums.GTValues;
-import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.interfaces.IRecipeMap;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
+import tectech.thing.CustomItemList;
 
 /**
  * Hardcoded special recipes for the Electronics Market multiblock.
@@ -112,22 +112,15 @@ public class ElectronicsMarketRecipePool {
     // ========================================================================
 
     private static void loadLaserVacuumTubeRecipe(IRecipeMap EM) {
-        // TODO: "Laser Vacuum Tube" is a custom item concept from the design spec.
-        // It does not exist in GT5-Unofficial's ItemList. The output item reference
-        // below uses Circuit_Parts_Vacuum_Tube as a placeholder. Replace with the
-        // actual custom item or the correct GTNH item once confirmed.
-        //
-        // Searched: GT5-Unofficial ItemList (no LaserVacuumTube found),
-        // TST project source (no matches), GTNH mod ecosystem jars (no matches).
-        // This may be a new item to be added to ModItemList in a future task.
-
+        // Laser Vacuum Pipe (TecTech, Meta ID 15465) — merged into GT5-Unofficial.
+        // Registered as tectech.thing.CustomItemList.LASERpipe
         ItemStack glassInput = new ItemStack(Blocks.glass, 1);
         ItemStack osmiridiumFoil = GTOreDictUnificator.get(OrePrefixes.foil, Materials.Osmiridium, 1);
-        ItemStack outputTube = ItemList.Circuit_Parts_Vacuum_Tube.get(1);
+        ItemStack outputTube = CustomItemList.LASERpipe.get(1);
 
         if (osmiridiumFoil == null || outputTube == null) {
             AndgateTechnology.LOG
-                .warn("Laser Vacuum Tube recipe skipped: missing Osmiridium foil or Vacuum Tube item reference.");
+                .warn("Laser Vacuum Tube recipe skipped: missing Osmiridium foil or Laser Vacuum Pipe item.");
             return;
         }
 

@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-04-09: 自定义 UI 与激光真空管修复
+
+### Completed
+- 确认 TecTech 已合并到 GT5-Unofficial，找到 Laser Vacuum Pipe（Meta ID 15465，`CustomItemList.LASERpipe`）
+- 更新激光真空管配方输出为 `CustomItemList.LASERpipe`
+- 参考 TST 的 `addUIWidgets` 模式，为美弱南电子市场添加自定义 UI
+- UI 显示：阶段（Stage I/II/III）、并行数、速度加成、完美超频开关
+- 所有 UI 数据通过 `FakeSyncWidget` 同步服务端→客户端
+- 添加 I18n 翻译 key 到 `en_US.lang`
+- BUILD SUCCESSFUL 验证通过
+
+### Issues Encountered
+- **TextWidget.setTextColor 不存在** → 应使用 `setDefaultColor`
+- **FakeSyncWidget.FloatSyncer 不存在** → 改用 `DoubleSyncer` + `val.floatValue()` 转换
+
+### Decisions Made
+- UI 使用纯 TextWidget 显示运行时信息，暂不自定义纹理
+- UI 位置在默认 GT 多方块 UI 下方（y=73/83/93/103）
+
+---
+
 ## 2026-04-09: 整理赛格大厦愿景到 ToDOLIST
 
 ### Completed
@@ -11,6 +32,20 @@
 - 配方解锁由[供货协议合同]决定，不再由结构方块决定
 - 模块用闪存绑定主方块，不限制固定位置
 - 供电统一到大夏，模块从大厦取电，不足吞材料
+
+---
+
+## 2026-04-09: 激光真空管配方修复
+
+### Completed
+- 确认 TecTech 已合并到 GT5-Unofficial
+- 在 GT5-Unofficial 源码中找到 Laser Vacuum Pipe（Meta ID 15465，`tectech.thing.CustomItemList.LASERpipe`）
+- 更新 `ElectronicsMarketRecipePool.java`：将 `ItemList.Circuit_Parts_Vacuum_Tube` 替换为 `CustomItemList.LASERpipe`
+- 移除无用的 `ItemList` import
+- BUILD SUCCESSFUL 验证通过
+
+### Decisions Made
+- 激光真空管配方输出改为 TecTech 的 Laser Vacuum Pipe（`CustomItemList.LASERpipe`），不再使用占位符
 
 ---
 

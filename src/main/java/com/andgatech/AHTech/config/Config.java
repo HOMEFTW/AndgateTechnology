@@ -17,9 +17,13 @@ public class Config {
     // region Electronics Market
     public static boolean Enable_ElectronicsMarket = true;
     public static double Stage1_BaseRecoveryRate = 0.30;
-    public static double Stage2_BaseRecoveryRate = 0.60;
-    public static double Stage3_BaseRecoveryRate = 0.90;
-    public static double VoltageBonusPerTier = 0.02;
+    // endregion
+
+    // region Modularization
+    public static boolean EnableModularizedMachineSystem = true;
+    public static float RecoveryModuleLv1Rate = 0.50f;
+    public static float RecoveryModuleLv2Rate = 0.70f;
+    public static float RecoveryModuleLv3Rate = 0.90f;
     // endregion
 
     // region Machine Enables
@@ -60,27 +64,33 @@ public class Config {
             "Enable/disable Electronics Market multiblock.");
         Stage1_BaseRecoveryRate = (double) configuration
             .getFloat("Stage1BaseRecoveryRate", "ElectronicsMarket", 0.30f, 0.0f, 1.0f, "Stage I base recycling rate.");
-        Stage2_BaseRecoveryRate = (double) configuration.getFloat(
-            "Stage2BaseRecoveryRate",
-            "ElectronicsMarket",
-            0.60f,
+        // Modularization
+        EnableModularizedMachineSystem = configuration.getBoolean(
+            "EnableModularizedMachineSystem",
+            "Modularization",
+            true,
+            "Enable/disable the modularization machine system.");
+        RecoveryModuleLv1Rate = configuration.getFloat(
+            "RecoveryModuleLv1Rate",
+            "Modularization",
+            0.50f,
             0.0f,
             1.0f,
-            "Stage II base recycling rate.");
-        Stage3_BaseRecoveryRate = (double) configuration.getFloat(
-            "Stage3BaseRecoveryRate",
-            "ElectronicsMarket",
+            "Recovery rate for Lv1 Recovery Module.");
+        RecoveryModuleLv2Rate = configuration.getFloat(
+            "RecoveryModuleLv2Rate",
+            "Modularization",
+            0.70f,
+            0.0f,
+            1.0f,
+            "Recovery rate for Lv2 Recovery Module.");
+        RecoveryModuleLv3Rate = configuration.getFloat(
+            "RecoveryModuleLv3Rate",
+            "Modularization",
             0.90f,
             0.0f,
             1.0f,
-            "Stage III base recycling rate.");
-        VoltageBonusPerTier = (double) configuration.getFloat(
-            "VoltageBonusPerTier",
-            "ElectronicsMarket",
-            0.02f,
-            0.0f,
-            1.0f,
-            "Recovery rate bonus per voltage tier.");
+            "Recovery rate for Lv3 Recovery Module.");
 
         if (configuration.hasChanged()) {
             configuration.save();

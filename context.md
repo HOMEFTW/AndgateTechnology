@@ -19,6 +19,7 @@ Base class: `MTEExtendedPowerMultiBlockBase<ElectronicsMarket>`
 Structure tier: `ofBlocksTiered()` — Tier I: Tungstensteel Casing, Tier II: Stable Titanium Casing, Tier III: Prediction Casing
 Voltage: affects speed (tier-based bonus) and parallel (tier²×4×(1+voltage/8))
 Stage III: enables Perfect Overclock
+UI: custom `addUIWidgets` override displaying stage, parallel, speed bonus, perfect OC status (synced via FakeSyncWidget)
 
 ### Items
 | Name | Registration | Description |
@@ -41,7 +42,7 @@ _(none yet)_
 ### Recipe Pools
 | Recipe Pool | Type | Description |
 |-------------|------|-------------|
-| ElectronicsMarketRecipePool | Hardcoded | Cable disassembly (36 materials × 6 sizes), Laser vacuum tube (Stage II+) |
+| ElectronicsMarketRecipePool | Hardcoded | Cable disassembly (36 materials × 6 sizes), Laser Vacuum Pipe (TecTech, Stage II+) |
 | RecyclingRecipeGenerator | Auto-parsed | Scans GT RecipeMaps + Forge CraftingManager at serverStarted |
 | ShapedCraftRecipePool | Crafting | Empty placeholder |
 
@@ -66,7 +67,7 @@ _(none yet)_
 - `com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator` — Auto-parse generator
 
 ## Dependencies
-- GT5-Unofficial (GregTech)
+- GT5-Unofficial (GregTech + merged TecTech)
 - GTNHLib
 - NewHorizonsCoreMod
 - IC2 (industrialcraft-2:2.2.828-experimental)
