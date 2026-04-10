@@ -1,0 +1,12 @@
+package com.andgatech.AHTech.common.modularizedMachine;
+
+public enum ModularHatchType {
+    PARALLEL_CONTROLLER,
+    SPEED_CONTROLLER,
+    OVERCLOCK_CONTROLLER,
+    POWER_CONSUMPTION_CONTROLLER,
+    RECOVERY_RATE_CONTROLLER,
+    EXECUTION_CORE,
+    FUNCTION_MODULE,
+    ALL;
+}

@@ -1,5 +1,60 @@
 # Development Log
 
+## 2026-04-10: 模块化系统实现
+
+### Completed
+- 实现完整的 TST 风格模块化系统框架
+  - 接口层次：IModularizedMachine + 8 个子接口（并行/速度/超频/功耗/回收率/功能模块/聚合）
+  - 基类层次：ModularizedMachineBase → ModularizedMachineSupportAllModuleBase
+  - 舱口基类：ModularHatchBase（含 moduleTier 兼容性检查）
+- 实现 TST 标准模块各一个（并行/速度/超频/功耗）用于框架验证
+- 实现回收率模块 3 级（50%/70%/90%）
+- 实现执行核心（普通版，框架验证）
+- 实现功能模块系统 + 通用拆解模块
+- 重构 ElectronicsMarket 使用模块化架构
+  - 移除 stage 硬编码性能参数
+  - 一阶保留 30% 基础回收率
+  - 二阶以上由模块驱动
+  - validateRecipe 根据 specialValue 检查功能模块
+  - 输出应用回收率（电路板 100%）
+- 更新 Config（新增模块化配置，删除 Stage2/3/Voltage）
+- 更新 ModItemList（新增 9 个模块条目）
+- 更新 MachineLoader（注册模块舱口，Meta 35050-35070）
+- 更新 RecyclingRecipeGenerator（自动回收配方标记 specialValue(1)）
+- BUILD SUCCESSFUL 验证通过
+
+### Decisions Made
+- 模块化系统完整仿照 TST 的接口+基类+舱口三层架构
+- 新增 ISupportRecoveryRateController 和 ISupportFunctionModule 接口
+- 功能模块控制"能拆什么"，性能模块控制"拆多少"
+- 配方通过 specialValue 分类：0=硬编码, 1=通用拆解, 2=需二阶
+- 一阶无模块功能，二阶开始才能插入模块
+- 回收率取所有安装模块的最大值
+- 允许同类多模块叠加效果
+
+---
+
+## 2026-04-09: 自定义 UI 与激光真空管修复
+
+### Completed
+- 确认 TecTech 已合并到 GT5-Unofficial，找到 Laser Vacuum Pipe（Meta ID 15465，`CustomItemList.LASERpipe`）
+- 更新激光真空管配方输出为 `CustomItemList.LASERpipe`
+- 参考 TST 的 `addUIWidgets` 模式，为美弱南电子市场添加自定义 UI
+- UI 显示：阶段（Stage I/II/III）、并行数、速度加成、完美超频开关
+- 所有 UI 数据通过 `FakeSyncWidget` 同步服务端→客户端
+- 添加 I18n 翻译 key 到 `en_US.lang`
+- BUILD SUCCESSFUL 验证通过
+
+### Issues Encountered
+- **TextWidget.setTextColor 不存在** → 应使用 `setDefaultColor`
+- **FakeSyncWidget.FloatSyncer 不存在** → 改用 `DoubleSyncer` + `val.floatValue()` 转换
+
+### Decisions Made
+- UI 使用纯 TextWidget 显示运行时信息，暂不自定义纹理
+- UI 位置在默认 GT 多方块 UI 下方（y=73/83/93/103）
+
+---
+
 ## 2026-04-09: 整理赛格大厦愿景到 ToDOLIST
 
 ### Completed
@@ -11,6 +66,20 @@
 - 配方解锁由[供货协议合同]决定，不再由结构方块决定
 - 模块用闪存绑定主方块，不限制固定位置
 - 供电统一到大夏，模块从大厦取电，不足吞材料
+
+---
+
+## 2026-04-09: 激光真空管配方修复
+
+### Completed
+- 确认 TecTech 已合并到 GT5-Unofficial
+- 在 GT5-Unofficial 源码中找到 Laser Vacuum Pipe（Meta ID 15465，`tectech.thing.CustomItemList.LASERpipe`）
+- 更新 `ElectronicsMarketRecipePool.java`：将 `ItemList.Circuit_Parts_Vacuum_Tube` 替换为 `CustomItemList.LASERpipe`
+- 移除无用的 `ItemList` import
+- BUILD SUCCESSFUL 验证通过
+
+### Decisions Made
+- 激光真空管配方输出改为 TecTech 的 Laser Vacuum Pipe（`CustomItemList.LASERpipe`），不再使用占位符
 
 ---
 

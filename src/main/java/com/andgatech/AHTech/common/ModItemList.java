@@ -26,6 +26,24 @@ public enum ModItemList {
     ElectronicsMarket,
     // endregion
 
+    // region Modular Hatches - Performance
+    ParallelControllerLv1,
+    SpeedControllerLv1,
+    OverclockControllerLv1,
+    PowerConsumptionLv1,
+    RecoveryRateLv1,
+    RecoveryRateLv2,
+    RecoveryRateLv3,
+    // endregion
+
+    // region Modular Hatches - Execution Cores
+    ExecutionCoreNormal,
+    // endregion
+
+    // region Modular Hatches - Function Modules
+    GeneralDisassemblyModule,
+    // endregion
+
     ;
 
     private ItemStack mStack;

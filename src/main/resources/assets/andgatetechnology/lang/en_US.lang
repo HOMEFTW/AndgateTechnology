@@ -2,3 +2,11 @@
 # Translation keys are auto-generated from //#tr comments in source code.
 # Manual entries can be added here.
 comments=via addon.gradle preprocessing.
+
+# UI
+AHTech.UI.Stage=Stage: %s
+AHTech.UI.Parallel=Parallel: %d
+AHTech.UI.Speed=Speed: %s
+AHTech.UI.PerfectOverclock.On=Perfect OC: ON
+AHTech.UI.PerfectOverclock.Off=Perfect OC: OFF
+AHTech.UI.Recovery=Recovery: %s
