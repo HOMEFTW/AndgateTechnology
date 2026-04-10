@@ -1,9 +1,11 @@
-package com.andgatech.AHTech.common.modularizedMachine.modularHatches;
+package com.andgatech.AHTech.common.modularizedMachine.modularHatches.functionModule;
 
 import com.andgatech.AHTech.common.modularizedMachine.FunctionType;
 import com.andgatech.AHTech.common.modularizedMachine.ISupportFunctionModule;
 import com.andgatech.AHTech.common.modularizedMachine.ModularHatchType;
 import com.andgatech.AHTech.common.modularizedMachine.ModularizedMachineBase;
+import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IStaticModularHatch;
+import com.andgatech.AHTech.common.modularizedMachine.modularHatches.ModularHatchBase;
 
 import gregtech.api.interfaces.ITexture;
 

@@ -39,7 +39,6 @@ public class RecoveryRateModule extends ModularHatchBase implements IStaticModul
     @Override
     public void onCheckMachine(ModularizedMachineBase<?> machine) {
         if (isCompatibleWithMachine(machine) && machine instanceof ISupportRecoveryRateController ctrl) {
-            // Take the maximum recovery rate from all installed modules
             ctrl.setRecoveryRate(Math.max(ctrl.getRecoveryRate(), this.recoveryRate));
         }
     }

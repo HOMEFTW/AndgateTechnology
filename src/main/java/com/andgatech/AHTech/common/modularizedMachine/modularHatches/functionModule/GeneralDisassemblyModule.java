@@ -1,32 +1,29 @@
-package com.andgatech.AHTech.common.modularizedMachine.modularHatches;
+package com.andgatech.AHTech.common.modularizedMachine.modularHatches.functionModule;
+
+import com.andgatech.AHTech.common.modularizedMachine.FunctionType;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
-public class ExecutionCore extends ExecutionCoreBase {
+public class GeneralDisassemblyModule extends FunctionModuleBase {
 
-    public ExecutionCore(int aID, String aName, String aNameRegional, int aTier) {
+    public GeneralDisassemblyModule(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier);
     }
 
-    public ExecutionCore(String aName, int aTier, ITexture[][][] aTextures) {
+    public GeneralDisassemblyModule(String aName, int aTier, ITexture[][][] aTextures) {
         super(aName, aTier, aTextures);
     }
 
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new ExecutionCore(this.mName, this.mTier, this.mTextures);
+        return new GeneralDisassemblyModule(this.mName, this.mTier, this.mTextures);
     }
 
     @Override
-    public boolean done() {
-        return true;
-    }
-
-    @Override
-    public boolean useMainMachinePower() {
-        return true;
+    public FunctionType getFunctionType() {
+        return FunctionType.GENERAL_DISASSEMBLY;
     }
 
     @Override

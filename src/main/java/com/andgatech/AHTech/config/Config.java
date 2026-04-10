@@ -24,6 +24,14 @@ public class Config {
     public static float RecoveryModuleLv1Rate = 0.50f;
     public static float RecoveryModuleLv2Rate = 0.70f;
     public static float RecoveryModuleLv3Rate = 0.90f;
+
+    // region ModuleDefaults -- TST Standard Modules
+    public static int[] ParallelOfParallelController = { 8, 128, 2048, 32768, 524288, 8388608, 134217728,
+        Integer.MAX_VALUE };
+    public static int[] SpeedMultiplierOfSpeedController = { 2, 4, 8, 16, 32, 64, 128, 256 };
+    public static double[] PowerConsumptionMultiplierOfPowerConsumptionController = { 0.95, 0.9, 0.85, 0.8, 0.75, 0.7,
+        0.5, 0.25 };
+    // endregion
     // endregion
 
     // region Machine Enables

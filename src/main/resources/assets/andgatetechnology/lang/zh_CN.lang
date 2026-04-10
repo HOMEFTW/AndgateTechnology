@@ -1,0 +1,32 @@
+# Andgate Technology Language File
+# Translation keys are auto-generated from //#tr comments in source code.
+# Manual entries can be added here.
+comments=via addon.gradle preprocessing.
+
+# UI
+AHTech.UI.Stage=Stage: %s
+AHTech.UI.Parallel=Parallel: %d
+AHTech.UI.Speed=Speed: %s
+AHTech.UI.PerfectOverclock.On=Perfect OC: ON
+AHTech.UI.PerfectOverclock.Off=Perfect OC: OFF
+AHTech.UI.Recovery=Recovery: %s
+Tooltips.AdvancedExecutionCore.01=为你的模块化机器添加一颗直接使用无线EU能源的执行核心.
+Tooltips.AdvancedExecutionCore.02=此执行核心使用机器的机制和能源参数进行配方匹配和执行.
+Tooltips.AdvancedExecutionCore.03=但不消耗机器的能源, 而是直接使用无线EU能源.
+Tooltips.ExecutionCore.01=为你的模块化机器添加一颗实际执行核心.
+Tooltips.ExecutionCore.02=支持多执行核心的机器将实际生产任务分配到这些执行核心上.
+Tooltips.ExecutionCore.03=多个执行核心共同使用机器的输入输出和能源和逻辑.
+Tooltips.PerfectExecutionCore.01=为你的模块化机器添加第二个自我, 但更加强大.
+Tooltips.PerfectExecutionCore.02=直接使用无线EU能源. 任何任务都在 1 秒内完成.
+Tooltips.StaticOverclockController.01=决定机器超频效率的超频控制器模块.
+Tooltips.StaticOverclockController.03=每台机器只可安装一个超频控制器.
+Tooltips.DynamicParallelController.01=可调参数的并行控制器模块.
+Tooltips.DynamicParallelController.02=最多提供
+Tooltips.StaticParallelController.01=固定参数的并行控制器模块.
+Tooltips.StaticParallelController.02=提供
+Tooltips.StaticPowerConsumptionController.01=固定参数的耗能控制器模块.
+Tooltips.StaticPowerConsumptionController.02=机器实际耗电量乘以
+Tooltips.DynamicSpeedController.01=可调参数的速度控制器模块.
+Tooltips.DynamicSpeedController.02=最高提供速度增幅
+Tooltips.StaticSpeedController.01=固定参数的速度控制器模块.
+Tooltips.StaticSpeedController.02=提供速度增幅

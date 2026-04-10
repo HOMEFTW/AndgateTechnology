@@ -26,18 +26,71 @@ public enum ModItemList {
     ElectronicsMarket,
     // endregion
 
-    // region Modular Hatches - Performance
-    ParallelControllerLv1,
-    SpeedControllerLv1,
-    OverclockControllerLv1,
-    PowerConsumptionLv1,
-    RecoveryRateLv1,
-    RecoveryRateLv2,
-    RecoveryRateLv3,
+    // region Modular Hatches - Parallel Controllers
+    StaticParallelControllerT1,
+    StaticParallelControllerT2,
+    StaticParallelControllerT3,
+    StaticParallelControllerT4,
+    StaticParallelControllerT5,
+    StaticParallelControllerT6,
+    StaticParallelControllerT7,
+    StaticParallelControllerT8,
+    DynamicParallelControllerT1,
+    DynamicParallelControllerT2,
+    DynamicParallelControllerT3,
+    DynamicParallelControllerT4,
+    DynamicParallelControllerT5,
+    DynamicParallelControllerT6,
+    DynamicParallelControllerT7,
+    DynamicParallelControllerT8,
+    // endregion
+
+    // region Modular Hatches - Speed Controllers
+    StaticSpeedControllerT1,
+    StaticSpeedControllerT2,
+    StaticSpeedControllerT3,
+    StaticSpeedControllerT4,
+    StaticSpeedControllerT5,
+    StaticSpeedControllerT6,
+    StaticSpeedControllerT7,
+    StaticSpeedControllerT8,
+    DynamicSpeedControllerT1,
+    DynamicSpeedControllerT2,
+    DynamicSpeedControllerT3,
+    DynamicSpeedControllerT4,
+    DynamicSpeedControllerT5,
+    DynamicSpeedControllerT6,
+    DynamicSpeedControllerT7,
+    DynamicSpeedControllerT8,
+    // endregion
+
+    // region Modular Hatches - Power Consumption Controllers
+    StaticPowerConsumptionControllerT1,
+    StaticPowerConsumptionControllerT2,
+    StaticPowerConsumptionControllerT3,
+    StaticPowerConsumptionControllerT4,
+    StaticPowerConsumptionControllerT5,
+    StaticPowerConsumptionControllerT6,
+    StaticPowerConsumptionControllerT7,
+    StaticPowerConsumptionControllerT8,
+    // endregion
+
+    // region Modular Hatches - Overclock Controllers
+    LowSpeedPerfectOverclockController,
+    PerfectOverclockController,
+    SingularityPerfectOverclockController,
     // endregion
 
     // region Modular Hatches - Execution Cores
     ExecutionCoreNormal,
+    AdvExecutionCore,
+    PerfectExecutionCore,
+    // endregion
+
+    // region Modular Hatches - Recovery Rate
+    RecoveryRateLv1,
+    RecoveryRateLv2,
+    RecoveryRateLv3,
     // endregion
 
     // region Modular Hatches - Function Modules
