@@ -34,6 +34,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.api.drawable.Text;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
@@ -71,6 +72,10 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
 
     // region Instance Fields
     private int structureTier = TIER_NONE;
+    // Client-side synced cache fields (written by FakeSyncWidget setters on client)
+    private int syncedParallel;
+    private float syncedSpeedBonus;
+    private float syncedRecoveryRate;
     // endregion
 
     // region Class Constructor
@@ -430,66 +435,68 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         super.addUIWidgets(builder, buildContext);
 
         // Stage display (synced from server)
-        builder.widget(new TextWidget().setStringSupplier(() -> {
-            String tierName = switch (structureTier) {
-                case TIER_I -> "I";
-                case TIER_II -> "II";
-                case TIER_III -> "III";
-                default -> "?";
-            };
-            return StatCollector.translateToLocalFormatted("AHTech.UI.Stage", tierName);
-        })
-            .setDefaultColor(0x55FF55)
-            .setPos(6, 73)
-            .setSize(80, 10));
+        builder
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String tierName = switch (structureTier) {
+                    case TIER_I -> "I";
+                    case TIER_II -> "II";
+                    case TIER_III -> "III";
+                    default -> "?";
+                };
+                return StatCollector.translateToLocalFormatted("AHTech.UI.Stage", tierName);
+            })
+                .setDefaultColor(0x55FF55)
+                .setPos(6, 73)
+                .setSize(80, 10))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> structureTier, val -> structureTier = val));
 
-        // Parallel display (synced via getter)
+        // Parallel display (synced via cached field)
         builder
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> StatCollector.translateToLocalFormatted("AHTech.UI.Parallel", getMaxParallelRecipes()))
+                        () -> StatCollector.translateToLocalFormatted("AHTech.UI.Parallel", syncedParallel))
                     .setDefaultColor(0x55FFFF)
                     .setPos(6, 83)
                     .setSize(80, 10))
-            .widget(new FakeSyncWidget.IntegerSyncer(this::getMaxParallelRecipes, val -> {}));
+            .widget(new FakeSyncWidget.IntegerSyncer(this::getMaxParallelRecipes, val -> syncedParallel = val));
 
-        // Speed bonus display (synced via getter)
+        // Speed bonus display (synced via cached field)
         builder
             .widget(
                 new TextWidget().setStringSupplier(
                     () -> StatCollector
-                        .translateToLocalFormatted("AHTech.UI.Speed", String.format("%.0f%%", getSpeedBonus() * 100)))
+                        .translateToLocalFormatted("AHTech.UI.Speed", String.format("%.0f%%", syncedSpeedBonus * 100)))
                     .setDefaultColor(0xFFFF55)
                     .setPos(6, 93)
                     .setSize(80, 10))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getSpeedBonus(), val -> {}));
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getSpeedBonus(), val -> syncedSpeedBonus = (float) (double) val));
 
-        // Recovery rate display
+        // Recovery rate display (synced via cached field)
         builder
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> StatCollector.translateToLocalFormatted(
                             "AHTech.UI.Recovery",
-                            String.format("%.0f%%", getRecoveryRate() * 100)))
+                            String.format("%.0f%%", syncedRecoveryRate * 100)))
                     .setDefaultColor(0x55FFFF)
                     .setPos(6, 103)
                     .setSize(80, 10))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getRecoveryRate(), val -> {}));
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getRecoveryRate(), val -> syncedRecoveryRate = (float) (double) val));
 
-        // Perfect overclock indicator (synced via getter)
+        // Perfect overclock indicator (synced via getter, dynamic color via DynamicTextWidget)
         builder
             .widget(
-                new TextWidget()
-                    .setStringSupplier(
-                        () -> isEnablePerfectOverclock()
-                            ? StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.On")
-                            : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off"))
-                    .setDefaultColor(isEnablePerfectOverclock() ? 0x55FF55 : 0xFF5555)
+                TextWidget.dynamicText(() -> {
+                    boolean on = isEnablePerfectOverclock();
+                    return new Text(on
+                        ? StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.On")
+                        : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off"))
+                            .color(on ? 0x55FF55 : 0xFF5555);
+                })
                     .setPos(6, 113)
-                    .setSize(80, 10))
-            .widget(new FakeSyncWidget.BooleanSyncer(this::isEnablePerfectOverclock, val -> {}));
+                    .setSize(80, 10));
     }
 
     // endregion

@@ -74,7 +74,7 @@ public class DynamicParallelController extends DynamicParallelControllerBase {
     @Override
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
         builder.widget(
-            TextWidget.localised("tst.DynamicParallelController.UI.text.01")
+            TextWidget.localised("AHTech.UI.DynamicParallelController.label")
                 .setPos(49, 18)
                 .setSize(81, 14))
             .widget(

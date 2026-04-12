@@ -79,7 +79,7 @@ public class DynamicSpeedController extends DynamicSpeedControllerBase {
     @Override
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
         builder.widget(
-            TextWidget.localised("tst.DynamicSpeedController.UI.text.01")
+            TextWidget.localised("AHTech.UI.DynamicSpeedController.label")
                 .setPos(49, 18)
                 .setSize(81, 14))
             .widget(
