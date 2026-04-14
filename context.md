@@ -105,7 +105,10 @@ Base class: `MTEExtendedPowerMultiBlockBase<ElectronicsMarket>`
 Structure tier: `ofBlocksTiered()` — Tier I: Tungstensteel Casing, Tier II: Stable Titanium Casing, Tier III: Prediction Casing
 Voltage: affects speed (tier-based bonus) and parallel (tier²×4×(1+voltage/8))
 Stage III: enables Perfect Overclock
-UI: custom `addUIWidgets` override displaying stage, parallel, speed bonus, perfect OC status (synced via FakeSyncWidget)
+UI: custom `addUIWidgets` override displaying stage, parallel, speed bonus, recovery rate, perfect OC status
+  - Stage/Parallel/Speed/Recovery: TextWidget + FakeSyncWidget + synced* cached fields (multiplayer-safe)
+  - Perfect OC: DynamicTextWidget with dynamic color (self-syncing, no FakeSyncWidget needed)
+  - Hatch labels: AHTech-owned localization keys (AHTech.UI.Dynamic*)
 
 ### Items
 | Name | Registration | Description |

@@ -1,5 +1,33 @@
 # Development Log
 
+## 2026-04-12: UI 同步修复与 gtnh-multiblock-ui skill 增强
+
+### Completed
+- 使用 gtnh-multiblock-ui skill 全面审查项目 UI 代码
+- 修复 ElectronicsMarket UI 的 5 个问题：
+  - Stage TextWidget 缺少 FakeSyncWidget.IntegerSyncer → 添加同步器
+  - Parallel/Speed/Recovery FakeSyncWidget setter 为空 `val -> {}` → 添加 synced* 缓存字段，setter 写入缓存，TextWidget 读取缓存值（修复多人模式同步）
+  - 完美超频指示器颜色不动态更新 + `.dynamicColor()` 方法不存在 → 改用 `TextWidget.dynamicText()` + `new Text(str).color(color)` 自同步方案
+  - 添加 `com.gtnewhorizons.modularui.api.drawable.Text` 导入
+- 修复 DynamicSpeedController / DynamicParallelController 的 `tst.*` 翻译键 → 改为 `AHTech.UI.*` 键
+- 在 en_US.lang / zh_CN.lang 中添加新翻译键
+- BUILD SUCCESSFUL 验证通过
+- 推送至 GitHub，打标签 `0.0.2-pre`
+
+### Issues Encountered
+- **`.dynamicColor()` 不存在于 MUI1 TextWidget**: MUI1 TextWidget 只有 `setDefaultColor()` 静态颜色 → 使用 `TextWidget.dynamicText()` (DynamicTextWidget) 配合 `new Text(str).color(dynamicColor)` 实现动态颜色
+- **FakeSyncWidget 空 setter 陷阱**: 计算型 getter（如 `getMaxParallelRecipes()`）搭配空 setter 在多人模式下客户端数据不同步 → 引入 `synced*` 缓存字段存储同步值，TextWidget 读取缓存而非原始 getter
+
+### Decisions Made
+- DynamicTextWidget 用于需要动态颜色的文本（完美超频指示器），普通 TextWidget + FakeSyncWidget 缓存字段用于静态颜色的文本
+- 翻译键统一使用 `AHTech.*` 前缀，不依赖外部 mod 提供翻译
+
+### Extra
+- 从 TST 项目提取 7 个新 UI 模式加入 gtnh-multiblock-ui skill（模式 Q~W）
+- 新增模式：TST 模式切换增强、多状态按钮、DynamicTextWidget、DrawableWidget 状态指示器、ListSyncer、自定义窗口舱口、FakeSyncWidget setter 陷阱
+
+---
+
 ## 2026-04-10: TST 模块移植与互通
 
 ### Completed

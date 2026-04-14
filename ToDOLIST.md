@@ -82,5 +82,8 @@
 - [x] ElectronicsMarket 重构为模块化架构
 - [x] 移植 TST 完整模块系统（35 个标准模块）
 - [x] 实现 TST 模块互通（检测+识别+效果应用）
+- [x] UI 同步修复（FakeSyncWidget setter / DynamicTextWidget / 翻译键）
+- [x] gtnh-multiblock-ui skill 增强（从 TST 提取 7 个新模式）
+- [x] 版本 0.0.2-pre 推送至 GitHub
 
 ## Rejected / Postponed
