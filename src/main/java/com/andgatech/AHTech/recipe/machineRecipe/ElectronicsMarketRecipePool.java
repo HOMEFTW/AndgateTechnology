@@ -4,6 +4,8 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 
 import com.andgatech.AHTech.AndgateTechnology;
+import com.andgatech.AHTech.common.supplier.SupplierId;
+import com.andgatech.AHTech.recipe.metadata.AHTechRecipeMetadata;
 import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
 
 import gregtech.api.enums.GTValues;
@@ -82,6 +84,7 @@ public class ElectronicsMarketRecipePool {
                 GTValues.RA.stdBuilder()
                     .itemInputs(GTUtility.copyAmountUnsafe(1, cableStack))
                     .itemOutputs(wireStack, rubberStack)
+                    .metadata(AHTechRecipeMetadata.SUPPLIER_ID, SupplierId.SHANDONG_DEZHOU.getId())
                     .eut(TierEU.RECIPE_LV)
                     .duration(100)
                     .addTo(EM);
@@ -128,6 +131,7 @@ public class ElectronicsMarketRecipePool {
         GTValues.RA.stdBuilder()
             .itemInputs(glassInput, osmiridiumFoil)
             .itemOutputs(outputTube)
+            .metadata(AHTechRecipeMetadata.SUPPLIER_ID, SupplierId.GAIGUANG.getId())
             .specialValue(2)
             .eut(TierEU.RECIPE_HV)
             .duration(200)

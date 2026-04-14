@@ -132,7 +132,8 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
         // Try AHTech modular hatches first
         if (aMetaTileEntity instanceof ModularHatchBase modularHatch) {
             ModularHatchType type = modularHatch.getType();
-            if (!getSupportedModularHatchTypes().contains(type)) return false;
+            Collection<ModularHatchType> supportedTypes = getSupportedModularHatchTypes();
+            if (!supportedTypes.contains(ModularHatchType.ALL) && !supportedTypes.contains(type)) return false;
 
             // Update texture like standard hatches
             modularHatch.updateTexture(aBaseCasingIndex);

@@ -15,6 +15,10 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE_ACTIVE_GLOW;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE_GLOW;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -24,9 +28,16 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
+import com.andgatech.AHTech.common.contract.ContractItem;
+import com.andgatech.AHTech.common.contract.ContractTier;
 import com.andgatech.AHTech.common.modularizedMachine.FunctionType;
+import com.andgatech.AHTech.common.modularizedMachine.ModularHatchType;
 import com.andgatech.AHTech.common.modularizedMachine.ModularizedMachineSupportAllModuleBase;
+import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IModularHatch;
+import com.andgatech.AHTech.common.supplier.SupplierHatch;
+import com.andgatech.AHTech.common.supplier.SupplierId;
 import com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator;
+import com.andgatech.AHTech.recipe.metadata.AHTechRecipeMetadata;
 import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
@@ -43,12 +54,15 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetricsExporter;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchDataAccess;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
@@ -61,7 +75,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * Tier I uses hardcoded parameters; Tier II/III performance is driven by installed modular hatches.
  */
 public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<ElectronicsMarket>
-    implements IConstructable, ISurvivalConstructable {
+    implements IConstructable, ISurvivalConstructable, IMetricsExporter {
 
     // region Structure Tier Constants
     public static final int TIER_NONE = 0;
@@ -72,10 +86,15 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
 
     // region Instance Fields
     private int structureTier = TIER_NONE;
+    private ContractTier contractTier = ContractTier.NONE;
+    private final EnumSet<SupplierId> activeSuppliers = EnumSet.noneOf(SupplierId.class);
+    private final ArrayList<MTEHatchDataAccess> mDataAccessHatches = new ArrayList<>();
     // Client-side synced cache fields (written by FakeSyncWidget setters on client)
     private int syncedParallel;
     private float syncedSpeedBonus;
     private float syncedRecoveryRate;
+    private int syncedContractTier;
+    private int syncedActiveSuppliers;
     // endregion
 
     // region Class Constructor
@@ -95,6 +114,109 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new ElectronicsMarket(this.mName);
+    }
+
+    // endregion
+
+    // region Information Panel Integration
+
+    @Override
+    public String[] getInfoData() {
+        return buildInformationLines().toArray(new String[0]);
+    }
+
+    @Override
+    public @NotNull List<String> reportMetrics() {
+        return ImmutableList.copyOf(buildInformationLines());
+    }
+
+    private List<String> buildInformationLines() {
+        List<String> lines = new ArrayList<>(8);
+        lines.add("Electronics Market");
+        lines.add("Status: " + getMachineStatusLine());
+        lines.add("Stage: " + getStructureTierLabel());
+        lines.add("Contract: " + getContractTierLabel());
+        lines.add("Suppliers: " + getActiveSupplierCount());
+        lines.add("Parallel: " + getMaxParallelRecipes());
+        lines.add("Speed Bonus: " + formatPercent(getSpeedBonus()));
+        lines.add("Recovery Rate: " + formatPercent(getRecoveryRate()));
+        lines.add("Perfect Overclock: " + (isEnablePerfectOverclock() ? "ON" : "OFF"));
+        lines.add("Modules: " + getInstalledModulesLabel());
+        return lines;
+    }
+
+    private String getMachineStatusLine() {
+        if (getStructureTier() < TIER_I) {
+            return "Incomplete";
+        }
+
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null && base.isActive()) {
+            return "Running";
+        }
+
+        return "Idle";
+    }
+
+    private String getStructureTierLabel() {
+        return switch (getStructureTier()) {
+            case TIER_I -> "I";
+            case TIER_II -> "II";
+            case TIER_III -> "III";
+            default -> "N/A";
+        };
+    }
+
+    private String getContractTierLabel() {
+        return switch (getContractTierForUi()) {
+            case LV1 -> "Lv1";
+            case LV2 -> "Lv2";
+            case LV3 -> "Lv3";
+            case LV4 -> "Lv4";
+            case NONE -> "None";
+            default -> "Unknown";
+        };
+    }
+
+    private String formatPercent(float value) {
+        return Math.round(value * 100.0F) + "%";
+    }
+
+    private String getInstalledModulesLabel() {
+        if (getInstalledFunctionTypes().isEmpty()) {
+            return "None";
+        }
+
+        List<FunctionType> modules = new ArrayList<>(getInstalledFunctionTypes());
+        Collections.sort(modules);
+
+        List<String> labels = new ArrayList<>(modules.size());
+        for (FunctionType module : modules) {
+            labels.add(getFunctionTypeLabel(module));
+        }
+        return String.join(", ", labels);
+    }
+
+    private String getFunctionTypeLabel(FunctionType type) {
+        return switch (type) {
+            case GENERAL_DISASSEMBLY -> "General Disassembly";
+            case CIRCUIT_DISASSEMBLY -> "Circuit Disassembly";
+            case CABLE_DISASSEMBLY -> "Cable Disassembly";
+            case COMPONENT_FACTORY -> "Component Factory";
+            case CIRCUIT_BOARD_FACTORY -> "Circuit Board Factory";
+        };
+    }
+
+    protected ContractTier getContractTierForUi() {
+        return contractTier;
+    }
+
+    protected EnumSet<SupplierId> getActiveSuppliersForUi() {
+        return activeSuppliers.clone();
+    }
+
+    protected int getActiveSupplierCount() {
+        return getActiveSuppliersForUi().size();
     }
 
     // endregion
@@ -131,22 +253,7 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
             @NotNull
             @Override
             protected CheckRecipeResult validateRecipe(@NotNull GTRecipe recipe) {
-                if (getStructureTier() < TIER_I) {
-                    return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
-                }
-                // Tier I can only use base recipes (specialValue == 0 or default)
-                if (getStructureTier() == TIER_I && recipe.mSpecialValue > 0) {
-                    return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
-                }
-                // specialValue == 1 requires GENERAL_DISASSEMBLY function module
-                if (recipe.mSpecialValue == 1 && !hasFunction(FunctionType.GENERAL_DISASSEMBLY)) {
-                    return CheckRecipeResultRegistry.NO_RECIPE;
-                }
-                // specialValue == 2 requires tier II or above
-                if (recipe.mSpecialValue == 2 && getStructureTier() < TIER_II) {
-                    return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
-                }
-                return CheckRecipeResultRegistry.SUCCESSFUL;
+                return validateRecipeAccess(recipe);
             }
 
             @NotNull
@@ -208,12 +315,14 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("structureTier", structureTier);
+        aNBT.setInteger("contractTier", contractTier.getTier());
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         structureTier = aNBT.getInteger("structureTier");
+        contractTier = ContractTier.fromTier(aNBT.getInteger("contractTier"));
     }
 
     // endregion
@@ -354,17 +463,91 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
 
     @Override
     public boolean checkMachineMM(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+        mDataAccessHatches.clear();
+        activeSuppliers.clear();
+        contractTier = ContractTier.NONE;
         structureTier = TIER_NONE;
         boolean sign = checkPiece(STRUCTURE_PIECE_MAIN, horizontalOffSet, verticalOffSet, depthOffSet);
         if (!sign || structureTier < TIER_I) {
             return false;
         }
+        readContractFromDataHatches();
+        rebuildActiveSuppliers();
         // Tier I base parallel: 4 (staticParallel=3, plus base +1 from getMaxParallelRecipes = 4)
         if (structureTier == TIER_I) {
             setStaticParallelParameter(3);
         }
         // Tier II/III: parallel, speed, overclock, recovery rate are driven by installed modules
         return true;
+    }
+
+    @Override
+    public boolean addToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        return super.addToMachineList(aTileEntity, aBaseCasingIndex)
+            || addDataAccessToMachineList(aTileEntity, aBaseCasingIndex);
+    }
+
+    private boolean addDataAccessToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) {
+            return false;
+        }
+        IMetaTileEntity metaTileEntity = aTileEntity.getMetaTileEntity();
+        if (!(metaTileEntity instanceof MTEHatchDataAccess dataAccessHatch)) {
+            return false;
+        }
+        ((MTEHatch) metaTileEntity).updateTexture(aBaseCasingIndex);
+        return mDataAccessHatches.add(dataAccessHatch);
+    }
+
+    private void readContractFromDataHatches() {
+        List<ItemStack> stacks = new ArrayList<>();
+        for (MTEHatchDataAccess hatch : GTUtility.validMTEList(mDataAccessHatches)) {
+            for (int slot = 0; slot < hatch.getSizeInventory(); slot++) {
+                stacks.add(hatch.getStackInSlot(slot));
+            }
+        }
+        contractTier = ContractItem.findHighestTier(stacks);
+    }
+
+    private void rebuildActiveSuppliers() {
+        activeSuppliers.clear();
+        List<IModularHatch> supplierHatches = new ArrayList<>(
+            modularHatches.getOrDefault(ModularHatchType.SUPPLIER, Collections.emptyList()));
+        for (IModularHatch hatch : supplierHatches) {
+            if (hatch instanceof SupplierHatch supplierHatch) {
+                SupplierId supplierId = supplierHatch.getSupplierId();
+                if (supplierId.isUnlockedBy(contractTier)) {
+                    activeSuppliers.add(supplierId);
+                }
+            }
+        }
+    }
+
+    protected CheckRecipeResult validateRecipeAccess(@NotNull GTRecipe recipe) {
+        if (getStructureTier() < TIER_I) {
+            return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
+        }
+        if (getStructureTier() == TIER_I && recipe.mSpecialValue > 0) {
+            return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
+        }
+        if (recipe.mSpecialValue == 1 && !hasFunction(FunctionType.GENERAL_DISASSEMBLY)) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        if (recipe.mSpecialValue == 2 && getStructureTier() < TIER_II) {
+            return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
+        }
+
+        String supplierIdString = recipe.getMetadata(AHTechRecipeMetadata.SUPPLIER_ID);
+        return isSupplierRecipeAccessible(supplierIdString) ? CheckRecipeResultRegistry.SUCCESSFUL
+            : CheckRecipeResultRegistry.NO_RECIPE;
+    }
+
+    protected boolean isSupplierRecipeAccessible(String supplierIdString) {
+        if (supplierIdString == null) {
+            return true;
+        }
+        SupplierId supplierId = SupplierId.fromId(supplierIdString);
+        return supplierId != null && getActiveSuppliersForUi().contains(supplierId);
     }
 
     // endregion
@@ -485,6 +668,26 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                     .setSize(80, 10))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getRecoveryRate(), val -> syncedRecoveryRate = (float) (double) val));
 
+        builder
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> StatCollector.translateToLocalFormatted(
+                        "AHTech.UI.Contract",
+                        StatCollector.translateToLocal(ContractTier.fromTier(syncedContractTier).getTranslationKey())))
+                    .setDefaultColor(0xAAAAFF)
+                    .setPos(6, 113)
+                    .setSize(110, 10))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> getContractTierForUi().getTier(), val -> syncedContractTier = val));
+
+        builder
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> StatCollector.translateToLocalFormatted("AHTech.UI.Suppliers", syncedActiveSuppliers))
+                    .setDefaultColor(0xFFAA55)
+                    .setPos(6, 123)
+                    .setSize(110, 10))
+            .widget(new FakeSyncWidget.IntegerSyncer(this::getActiveSupplierCount, val -> syncedActiveSuppliers = val));
+
         // Perfect overclock indicator (synced via getter, dynamic color via DynamicTextWidget)
         builder
             .widget(
@@ -495,7 +698,7 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                         : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off"))
                             .color(on ? 0x55FF55 : 0xFF5555);
                 })
-                    .setPos(6, 113)
+                    .setPos(6, 133)
                     .setSize(80, 10));
     }
 

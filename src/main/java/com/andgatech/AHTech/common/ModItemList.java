@@ -16,8 +16,10 @@ import gregtech.api.util.GTUtility;
 public enum ModItemList {
 
     // region Items
-    // Add your items here, e.g.:
-    // MyCustomItem,
+    ContractLv1,
+    ContractLv2,
+    ContractLv3,
+    ContractLv4,
     // endregion
 
     // region Machines
@@ -95,6 +97,16 @@ public enum ModItemList {
 
     // region Modular Hatches - Function Modules
     GeneralDisassemblyModule,
+    // endregion
+
+    // region Supplier Hatches
+    SupplierShandongDezhou,
+    SupplierYadepian,
+    SupplierErfa,
+    SupplierChaola,
+    SupplierHuangweida,
+    SupplierGaiguang,
+    SupplierDitong,
     // endregion
 
     ;

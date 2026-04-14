@@ -1,6 +1,7 @@
 package com.andgatech.AHTech.loader;
 
 import com.andgatech.AHTech.config.Config;
+import com.andgatech.AHTech.recipe.commonRecipe.ShapedCraftRecipePool;
 import com.andgatech.AHTech.recipe.machineRecipe.ElectronicsMarketRecipePool;
 import com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator;
 
@@ -12,6 +13,7 @@ public class RecipeLoader {
 
     public static void loadRecipes() {
         // Load all recipe pools here in the correct order.
+        ShapedCraftRecipePool.loadRecipes();
 
         if (Config.Enable_ElectronicsMarket) {
             ElectronicsMarketRecipePool.loadRecipes();

@@ -8,5 +8,6 @@ public enum ModularHatchType {
     RECOVERY_RATE_CONTROLLER,
     EXECUTION_CORE,
     FUNCTION_MODULE,
+    SUPPLIER,
     ALL;
 }

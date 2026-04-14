@@ -13,6 +13,8 @@ import com.andgatech.AHTech.common.modularizedMachine.modularHatches.parallelCon
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.powerConsumptionController.StaticPowerConsumptionController;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.speedController.DynamicSpeedController;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.speedController.StaticSpeedController;
+import com.andgatech.AHTech.common.supplier.SupplierHatch;
+import com.andgatech.AHTech.common.supplier.SupplierId;
 import com.andgatech.AHTech.config.Config;
 
 /**
@@ -73,6 +75,7 @@ public class MachineLoader {
 
         // AHTech-exclusive modules: always register (TST does not have these)
         id = registerAHTechExclusiveModules(id);
+        registerSupplierHatches(id);
     }
 
     /**
@@ -431,6 +434,27 @@ public class MachineLoader {
         // endregion
 
         return id;
+    }
+
+    private static void registerSupplierHatches(int id) {
+        // 供应商不使用 tier 体系，传 0 以避免 isCompatibleWithMachine 误判
+        registerSupplier(id++, ModItemList.SupplierShandongDezhou, SupplierId.SHANDONG_DEZHOU);
+        registerSupplier(id++, ModItemList.SupplierYadepian, SupplierId.YADEPIAN);
+        registerSupplier(id++, ModItemList.SupplierErfa, SupplierId.ERFA);
+        registerSupplier(id++, ModItemList.SupplierChaola, SupplierId.CHAOLA);
+        registerSupplier(id++, ModItemList.SupplierHuangweida, SupplierId.HUANGWEIDA);
+        registerSupplier(id++, ModItemList.SupplierGaiguang, SupplierId.GAIGUANG);
+        registerSupplier(id, ModItemList.SupplierDitong, SupplierId.DITONG);
+    }
+
+    private static void registerSupplier(int id, ModItemList itemEntry, SupplierId supplierId) {
+        itemEntry.set(
+            new SupplierHatch(
+                id,
+                "Supplier." + supplierId.name(),
+                "Supplier " + supplierId.name(),
+                0,
+                supplierId).getStackForm(1L));
     }
 
     public static void loadMachinePostInit() {

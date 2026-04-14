@@ -1,6 +1,7 @@
 package com.andgatech.AHTech;
 
 import com.andgatech.AHTech.config.Config;
+import com.andgatech.AHTech.loader.ContractLoader;
 import com.andgatech.AHTech.loader.MachineLoader;
 import com.andgatech.AHTech.loader.MaterialLoader;
 import com.andgatech.AHTech.loader.RecipeLoader;
@@ -19,6 +20,7 @@ public class CommonProxy {
         AndgateTechnology.LOG.info(Tags.MODNAME + " at version " + Tags.VERSION);
 
         MaterialLoader.load();
+        ContractLoader.loadContracts();
     }
 
     public void init(FMLInitializationEvent event) {

@@ -1,8 +1,63 @@
-# Development Log
+# 开发日志
+
+## 2026-04-14: 合同与供应商系统实现
+
+### 已完成
+- 根据 `2026-04-14-contract-supplier-system-design.md` 与 `2026-04-14-contract-supplier-system.md` 实现合同等级系统，新增 `ContractTier`、`ContractItem` 与 `ContractLoader`，在 `preInit` 注册 Lv1-Lv4 合同物品
+- 新增 7 个供应商舱口（山东德州仪器、亚德骗半导体、二法半导体、超拉半导体、黄伟达、钙光、低通），并接入 `ModularHatchType.SUPPLIER`
+- 扩展 `ElectronicsMarket`：读取 `MTEHatchDataAccess` 中的最高合同等级，按已安装供应商舱口与合同等级解锁配方，并在 UI 与工业信息输出中显示合同/供应商状态
+- 新增 `AHTechRecipeMetadata.SUPPLIER_ID`，为供应商专属配方打标签；现有线缆拆解归属 `shandong_dezhou`，激光真空管归属 `gaiguang`
+- 为合同与供应商舱口补充合成配方，并新增 `ContractTierTest`、`SupplierIdTest`、`ElectronicsMarketSupplierAccessTest`
+- 使用 `./gradlew test` 完整验证通过
+
+### 遇到的问题
+- **支持 `ModularHatchType.ALL` 的机器无法识别供应商舱口**: `ModularizedMachineBase` 只检查是否包含具体类型 → 调整为 `ALL` 视为通配，避免 `ElectronicsMarket` 漏检新增供应商模块
+- **GTRecipeBuilder 在单元测试环境依赖 `Launch.blackboard`**: 直接构造 GT 配方会让测试被外部环境绊倒 → 改为测试 `ElectronicsMarket#isSupplierRecipeAccessible(...)` 的核心门禁逻辑
+
+### 决策记录
+- 合同等级与供应商解锁分离：合同放在 Data Access Hatch 中，供应商舱口安装在大厦结构上，二者共同决定可用配方
+- 保留 `specialValue` 作为原有结构/功能模块门禁，再用 metadata 叠加供应商门禁，避免推翻既有模块化体系
+- 合同物品使用普通 `Item` 注册而非 `MetaTileEntity`，减少配方解锁系统对世界方块/舱口的额外耦合
+
+---
+
+## 2026-04-14: 项目文档中文化与 gtnh-dev-logging 中文规则
+
+### 已完成
+- 将 `log.md`、`context.md`、`ToDOLIST.md` 中可翻译的标题、说明、状态文字与补充描述统一翻译为中文
+- 保留代码标识、类名、配置键、命令、路径等技术标识的原文，避免翻译后失真
+- 补充 `gtnh-dev-logging` skill，明确 `log.md`、`ToDOLIST.md`、`context.md` 在创建或更新时必须使用中文
+- 为 `gtnh-dev-logging` skill 增加“英文写作习惯”这一常见错误提醒，减少后续文档回退为英文
+
+### 决策记录
+- 项目记录文档采用“中文优先、技术标识保留原文”的维护规则
+- `gtnh-dev-logging` 只补充语言约束，不改动其核心工作流，避免影响既有使用方式
+
+---
+
+## 2026-04-14: 美弱南电子市场工业信息屏集成
+
+### 已完成
+- 使用 `gtnh-integration-helper` 工作流确认 GT 工业信息屏读取链路：普通传感卡读取 `getInfoData()`，高级传感卡优先读取 `reportMetrics()`
+- 在 `ElectronicsMarket` 中补充稳定的面板输出，同时实现 `getInfoData()` 与 `IMetricsExporter#reportMetrics()`
+- 以固定行顺序暴露阶段、状态、并行、速度加成、回收率、完美超频状态、已安装功能模块，便于工业信息屏按行过滤
+- 新增聚焦回归测试 `ElectronicsMarketInformationTest`
+- 使用 `./gradlew test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketInformationTest` 验证通过
+
+### 遇到的问题
+- **Java 8 测试源码兼容性**: 红灯阶段使用 `List.of(...)` 导致测试本身编译失败 → 改为 `Arrays.asList(...)`，确保失败原因只反映缺失的集成方法
+- **现有 Gradle 沙箱限制**: wrapper 需要访问用户目录下的 `.gradle` 缓存 → 在授权后重新执行验证命令
+
+### 决策记录
+- 同时实现 `getInfoData()` 与 `reportMetrics()`，让普通传感卡与工业信息屏共享同一套核心遥测结构
+- 将输出限制为固定 8 行，符合 GT 传感卡预期，也能让高级传感卡的按行开关保持稳定
+- 本次范围只聚焦于美弱南电子市场核心控制器；更大的信息面板目标（如供电、资金等）继续留在 `ToDOLIST.md` 中跟踪
+
+---
 
 ## 2026-04-12: UI 同步修复与 gtnh-multiblock-ui skill 增强
 
-### Completed
+### 已完成
 - 使用 gtnh-multiblock-ui skill 全面审查项目 UI 代码
 - 修复 ElectronicsMarket UI 的 5 个问题：
   - Stage TextWidget 缺少 FakeSyncWidget.IntegerSyncer → 添加同步器
@@ -14,15 +69,15 @@
 - BUILD SUCCESSFUL 验证通过
 - 推送至 GitHub，打标签 `0.0.2-pre`
 
-### Issues Encountered
+### 遇到的问题
 - **`.dynamicColor()` 不存在于 MUI1 TextWidget**: MUI1 TextWidget 只有 `setDefaultColor()` 静态颜色 → 使用 `TextWidget.dynamicText()` (DynamicTextWidget) 配合 `new Text(str).color(dynamicColor)` 实现动态颜色
 - **FakeSyncWidget 空 setter 陷阱**: 计算型 getter（如 `getMaxParallelRecipes()`）搭配空 setter 在多人模式下客户端数据不同步 → 引入 `synced*` 缓存字段存储同步值，TextWidget 读取缓存而非原始 getter
 
-### Decisions Made
+### 决策记录
 - DynamicTextWidget 用于需要动态颜色的文本（完美超频指示器），普通 TextWidget + FakeSyncWidget 缓存字段用于静态颜色的文本
 - 翻译键统一使用 `AHTech.*` 前缀，不依赖外部 mod 提供翻译
 
-### Extra
+### 补充
 - 从 TST 项目提取 7 个新 UI 模式加入 gtnh-multiblock-ui skill（模式 Q~W）
 - 新增模式：TST 模式切换增强、多状态按钮、DynamicTextWidget、DrawableWidget 状态指示器、ListSyncer、自定义窗口舱口、FakeSyncWidget setter 陷阱
 
@@ -30,7 +85,7 @@
 
 ## 2026-04-10: TST 模块移植与互通
 
-### Completed
+### 已完成
 - 将 TST 完整模块系统移植到 AHTech（35 个标准模块）
   - 静态并行控制器 T1-T8：8/128/2048/32768/524288/8388608/134217728/MAX
   - 动态并行控制器 T1-T8：同上参数
@@ -46,7 +101,7 @@
 - 使用编译时存根类实现互通（不依赖 TST JAR）
 - BUILD SUCCESSFUL 验证通过
 
-### Decisions Made
+### 决策记录
 - 使用存根类而非 Maven 依赖（TST 未发布到 GTNH Maven）
 - TST 存根类从输出 JAR 中排除，避免类冲突
 - TST 安装时跳过标准模块注册，AHTech 专属模块始终注册
@@ -56,7 +111,7 @@
 
 ## 2026-04-10: 模块化系统实现
 
-### Completed
+### 已完成
 - 实现完整的 TST 风格模块化系统框架
   - 接口层次：IModularizedMachine + 8 个子接口（并行/速度/超频/功耗/回收率/功能模块/聚合）
   - 基类层次：ModularizedMachineBase → ModularizedMachineSupportAllModuleBase
@@ -77,7 +132,7 @@
 - 更新 RecyclingRecipeGenerator（自动回收配方标记 specialValue(1)）
 - BUILD SUCCESSFUL 验证通过
 
-### Decisions Made
+### 决策记录
 - 模块化系统完整仿照 TST 的接口+基类+舱口三层架构
 - 新增 ISupportRecoveryRateController 和 ISupportFunctionModule 接口
 - 功能模块控制"能拆什么"，性能模块控制"拆多少"
@@ -90,7 +145,7 @@
 
 ## 2026-04-09: 自定义 UI 与激光真空管修复
 
-### Completed
+### 已完成
 - 确认 TecTech 已合并到 GT5-Unofficial，找到 Laser Vacuum Pipe（Meta ID 15465，`CustomItemList.LASERpipe`）
 - 更新激光真空管配方输出为 `CustomItemList.LASERpipe`
 - 参考 TST 的 `addUIWidgets` 模式，为美弱南电子市场添加自定义 UI
@@ -99,11 +154,11 @@
 - 添加 I18n 翻译 key 到 `en_US.lang`
 - BUILD SUCCESSFUL 验证通过
 
-### Issues Encountered
+### 遇到的问题
 - **TextWidget.setTextColor 不存在** → 应使用 `setDefaultColor`
 - **FakeSyncWidget.FloatSyncer 不存在** → 改用 `DoubleSyncer` + `val.floatValue()` 转换
 
-### Decisions Made
+### 决策记录
 - UI 使用纯 TextWidget 显示运行时信息，暂不自定义纹理
 - UI 位置在默认 GT 多方块 UI 下方（y=73/83/93/103）
 
@@ -111,11 +166,11 @@
 
 ## 2026-04-09: 整理赛格大厦愿景到 ToDOLIST
 
-### Completed
+### 已完成
 - 读取 chat.txt 中的设计愿景
 - 拆分为 6 个阶段、约 20 个具体小任务，写入 ToDOLIST.md
 
-### Decisions Made
+### 决策记录
 - 核心方向：从单台机器重构为模块化赛格大厦建筑系统
 - 配方解锁由[供货协议合同]决定，不再由结构方块决定
 - 模块用闪存绑定主方块，不限制固定位置
@@ -125,21 +180,21 @@
 
 ## 2026-04-09: 激光真空管配方修复
 
-### Completed
+### 已完成
 - 确认 TecTech 已合并到 GT5-Unofficial
 - 在 GT5-Unofficial 源码中找到 Laser Vacuum Pipe（Meta ID 15465，`tectech.thing.CustomItemList.LASERpipe`）
 - 更新 `ElectronicsMarketRecipePool.java`：将 `ItemList.Circuit_Parts_Vacuum_Tube` 替换为 `CustomItemList.LASERpipe`
 - 移除无用的 `ItemList` import
 - BUILD SUCCESSFUL 验证通过
 
-### Decisions Made
+### 决策记录
 - 激光真空管配方输出改为 TecTech 的 Laser Vacuum Pipe（`CustomItemList.LASERpipe`），不再使用占位符
 
 ---
 
 ## 2026-04-09: 美弱南电子市场实现
 
-### Completed
+### 已完成
 - 实现了完整的 8 步开发计划
 - Task 1: Config 配置项（Enable、回收率、电压加成）
 - Task 2: 自定义 RecipeMap `AHTechRecipeMaps.ElectronicsMarketRecipes`（9in/9out/4fin/4fout）
@@ -150,14 +205,14 @@
 - Task 7: BUILD SUCCESSFUL 验证通过
 - 修复 `.gitignore` 遗漏 `bin/` 和 `chat.txt` 的问题
 
-### Issues Encountered
+### 遇到的问题
 - **TST 依赖问题**: ElectronicsMarket 初始引用了 TST 的 GTCM_MultiMachineBase 等类 → 改为直接继承 GT 的 MTEExtendedPowerMultiBlockBase
 - **RecipeMapBackend 导入路径错误**: `gregtech.api.recipe.backend.RecipeMapBackend` → `gregtech.api.recipe.RecipeMapBackend`
 - **TierEU 常量位置**: `GTValues.RECIPE_LV` 不存在 → 应使用 `TierEU.RECIPE_LV`
 - **Materials 命名**: `Tungstensteel` → `TungstenSteel`，`SuperconductorUXV` 不存在
 - **网络不稳定**: GitHub manifest 加载偶尔失败，重试后恢复
 
-### Decisions Made
+### 决策记录
 - 电压影响：speedBonus 按 tier 递减（1x/0.5x/0.25x），maxParallel 按 tier²×4×(1+voltage/8)
 - Stage III 启用 Perfect Overclock
 - 回收率在运行时由 ProcessingLogic 根据阶段和电压动态计算，不在配方注册时固定
@@ -167,12 +222,12 @@
 
 ## 2026-04-09: 美弱南电子市场设计
 
-### Completed
+### 已完成
 - 完成美弱南电子市场多方块机器的设计文档
 - 文档路径: `docs/superpowers/specs/2026-04-09-electronics-market-design.md`
 - 修复 `.gitignore` 遗漏 `bin/` 目录的问题
 
-### Decisions Made
+### 决策记录
 - 单控制器方块 + 多方块结构组合判定阶段（而非三台独立机器）
 - Meta ID: 35001
 - 混合配方系统：硬编码特殊配方 + 自动解析回收配方
@@ -184,7 +239,7 @@
 
 ## 2026-04-09: 强化 gtnh-dev-logging skill
 
-### Completed
+### 已完成
 - 为 `gtnh-dev-logging` skill 添加强制规则：每完成一个用户请求后必须更新全部三个文件
 - 新增 Red Flags 列表，防止跳过文档更新的常见借口
 - 将规则 1 提升为 MANDATORY 级别
@@ -193,7 +248,7 @@
 
 ## 2026-04-09: 项目初始化与 Skill 改进
 
-### Completed
+### 已完成
 - 使用 `gtnh-addon-generator` skill 从模板生成完整项目骨架
 - 创建标准目录结构（loader / common / config / recipe / client / mixin 等）
 - 从 TST 项目复制 Gradle wrapper（gradlew / gradlew.bat / gradle-wrapper.jar）
@@ -201,12 +256,12 @@
 - 更新 `gtnh-addon-generator` skill 模板（修复 5 个构建问题）
 - 创建 `gtnh-dev-logging` skill（项目文档维护规范）
 
-### Issues Encountered
+### 遇到的问题
 - **Git 无提交记录**: GTNH Gradle 版本插件需要 git HEAD → 先 commit 再 build
 - **Mixin 包路径错误**: GTNH Convention 插件将 `mixinsPackage` 解析为相对 `modGroup` 的路径 → mixin 目录放在 `{PACKAGE_PATH}/mixin/`
 - **Spotless 格式检查失败**: `@SidedProxy` 多行注解 + LF 换行 → 改单行 + `spotlessApply`
 
-### Decisions Made
+### 决策记录
 - Mod ID: `AndgateTechnology`，资源命名空间: `andgatetechnology`
 - 包名: `com.andgatech.AHTech`（用户指定）
 - Meta ID 范围: 未分配，待后续添加机器时确定（避开 TST 使用的 18791-19080）
