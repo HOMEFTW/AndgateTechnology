@@ -34,6 +34,11 @@ public class Config {
     // endregion
     // endregion
 
+    // region Financial System
+    public static boolean EnableFinancialSystem = true;
+    public static boolean EnableAutoRefillFromInputBus = true;
+    // endregion
+
     // region Machine Enables
     // Add your machine enable/disable configs here:
     // public static boolean Enable_YourMachine = true;
@@ -99,6 +104,16 @@ public class Config {
             0.0f,
             1.0f,
             "Recovery rate for Lv3 Recovery Module.");
+        EnableFinancialSystem = configuration.getBoolean(
+            "EnableFinancialSystem",
+            "FinancialSystem",
+            true,
+            "Enable/disable the financial system.");
+        EnableAutoRefillFromInputBus = configuration.getBoolean(
+            "EnableAutoRefillFromInputBus",
+            "FinancialSystem",
+            true,
+            "Enable/disable automatic currency refill from input buses.");
 
         if (configuration.hasChanged()) {
             configuration.save();

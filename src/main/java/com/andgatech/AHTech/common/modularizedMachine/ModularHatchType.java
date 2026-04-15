@@ -9,5 +9,6 @@ public enum ModularHatchType {
     EXECUTION_CORE,
     FUNCTION_MODULE,
     SUPPLIER,
+    FINANCIAL,
     ALL;
 }

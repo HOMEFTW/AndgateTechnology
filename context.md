@@ -233,3 +233,16 @@ _(暂无)_
 - 互通通过编译时存根类实现，运行时通过 `Class.forName()` 检测 TST
 - AHTech 专属模块（回收率、功能模块）始终注册，不受 TST 影响
 - 工业信息屏输出刻意保持固定顺序，避免高级传感卡的按行过滤在机器重启或更换模块后失效
+
+## 2026-04-15 最新补充
+- `ElectronicsMarket` 现已支持资金系统：扫描 `FinancialHatch`、汇总余额、校验配方币种/消耗、成功处理后扣款，并在信息输出中展示资金摘要
+- 已存在的资金系统核心文件：
+  - `src/main/java/com/andgatech/AHTech/common/currency/CurrencyType.java`
+  - `src/main/java/com/andgatech/AHTech/common/currency/CurrencyItem.java`
+  - `src/main/java/com/andgatech/AHTech/common/modularizedMachine/modularHatches/FinancialHatch.java`
+  - `src/main/java/com/andgatech/AHTech/recipe/machineRecipe/CurrencyRecipePool.java`
+- `src/main/resources/assets/andgatetechnology/lang/zh_CN.lang` 已整体重写为正常 UTF-8 中文文件；在 PowerShell 中检查该文件时应优先使用 `Get-Content -Encoding UTF8`
+- 资金系统相关中文 key 已覆盖 `ElectronicsMarket` 资金状态、`FinancialHatch` 描述/自动补币以及 6 种货币名称
+- 最近一次验证结果：
+  - `./gradlew compileJava` 通过
+  - `./gradlew test` 通过

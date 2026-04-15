@@ -30,12 +30,15 @@ import org.jetbrains.annotations.NotNull;
 
 import com.andgatech.AHTech.common.contract.ContractItem;
 import com.andgatech.AHTech.common.contract.ContractTier;
+import com.andgatech.AHTech.common.currency.CurrencyType;
 import com.andgatech.AHTech.common.modularizedMachine.FunctionType;
 import com.andgatech.AHTech.common.modularizedMachine.ModularHatchType;
 import com.andgatech.AHTech.common.modularizedMachine.ModularizedMachineSupportAllModuleBase;
+import com.andgatech.AHTech.common.modularizedMachine.modularHatches.FinancialHatch;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IModularHatch;
 import com.andgatech.AHTech.common.supplier.SupplierHatch;
 import com.andgatech.AHTech.common.supplier.SupplierId;
+import com.andgatech.AHTech.config.Config;
 import com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator;
 import com.andgatech.AHTech.recipe.metadata.AHTechRecipeMetadata;
 import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
@@ -63,6 +66,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDataAccess;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
@@ -95,6 +99,11 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     private float syncedRecoveryRate;
     private int syncedContractTier;
     private int syncedActiveSuppliers;
+    private final List<FinancialHatch> financialHatches = new ArrayList<>();
+    private final int[] syncedFinancialCounts = new int[CurrencyType.values().length];
+    private int syncedFinancialHatchCount;
+    private CurrencyType currentRecipeCurrencyType;
+    private int currentRecipeCurrencyCost;
     // endregion
 
     // region Class Constructor
@@ -131,7 +140,7 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     }
 
     private List<String> buildInformationLines() {
-        List<String> lines = new ArrayList<>(8);
+        List<String> lines = new ArrayList<>(11);
         lines.add("Electronics Market");
         lines.add("Status: " + getMachineStatusLine());
         lines.add("Stage: " + getStructureTierLabel());
@@ -142,6 +151,7 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         lines.add("Recovery Rate: " + formatPercent(getRecoveryRate()));
         lines.add("Perfect Overclock: " + (isEnablePerfectOverclock() ? "ON" : "OFF"));
         lines.add("Modules: " + getInstalledModulesLabel());
+        lines.add("Finance: " + getFinancialStatusLine());
         return lines;
     }
 
@@ -219,6 +229,24 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         return getActiveSuppliersForUi().size();
     }
 
+    protected String getFinancialStatusLine() {
+        if (!Config.EnableFinancialSystem) {
+            return "Disabled";
+        }
+        if (financialHatches.isEmpty()) {
+            return "No Hatch";
+        }
+
+        List<String> balances = new ArrayList<>();
+        for (CurrencyType type : CurrencyType.values()) {
+            int total = getTotalCurrency(type);
+            if (total > 0) {
+                balances.add(type.getName() + "x" + total);
+            }
+        }
+        return balances.isEmpty() ? "Empty" : String.join(" | ", balances);
+    }
+
     // endregion
 
     // region Structure Tier
@@ -277,7 +305,9 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         CheckRecipeResult result = super.checkProcessingMM();
         if (result.wasSuccessful()) {
             applyRecoveryRate();
+            consumeCurrencyFromRecipe();
         }
+        resetRecipeCurrencyState();
         return result;
     }
 
@@ -295,6 +325,20 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
             if (original <= 0) continue;
             int recovered = Math.max(1, Math.round(original * rate));
             mOutputItems[i].stackSize = recovered;
+        }
+    }
+
+    private void consumeCurrencyFromRecipe() {
+        if (!Config.EnableFinancialSystem || currentRecipeCurrencyType == null || currentRecipeCurrencyCost <= 0) {
+            return;
+        }
+
+        int remaining = currentRecipeCurrencyCost;
+        for (FinancialHatch hatch : financialHatches) {
+            if (remaining <= 0) {
+                break;
+            }
+            remaining -= hatch.consumeCurrency(currentRecipeCurrencyType, remaining);
         }
     }
 
@@ -465,14 +509,18 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     public boolean checkMachineMM(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mDataAccessHatches.clear();
         activeSuppliers.clear();
+        financialHatches.clear();
         contractTier = ContractTier.NONE;
         structureTier = TIER_NONE;
+        resetRecipeCurrencyState();
         boolean sign = checkPiece(STRUCTURE_PIECE_MAIN, horizontalOffSet, verticalOffSet, depthOffSet);
         if (!sign || structureTier < TIER_I) {
             return false;
         }
         readContractFromDataHatches();
         rebuildActiveSuppliers();
+        rebuildFinancialHatches();
+        autoRefillFinancialHatches();
         // Tier I base parallel: 4 (staticParallel=3, plus base +1 from getMaxParallelRecipes = 4)
         if (structureTier == TIER_I) {
             setStaticParallelParameter(3);
@@ -523,7 +571,53 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         }
     }
 
+    private void rebuildFinancialHatches() {
+        financialHatches.clear();
+        List<IModularHatch> hatches = new ArrayList<>(
+            modularHatches.getOrDefault(ModularHatchType.FINANCIAL, Collections.emptyList()));
+        for (IModularHatch hatch : hatches) {
+            if (hatch instanceof FinancialHatch financialHatch) {
+                financialHatches.add(financialHatch);
+            }
+        }
+    }
+
+    private void autoRefillFinancialHatches() {
+        if (!Config.EnableFinancialSystem || !Config.EnableAutoRefillFromInputBus || financialHatches.isEmpty()) {
+            return;
+        }
+
+        List<MTEHatchInputBus> inputBuses = getInputBuses();
+        for (FinancialHatch financialHatch : financialHatches) {
+            financialHatch.autoRefillFromInputBus(inputBuses);
+        }
+    }
+
+    private List<MTEHatchInputBus> getInputBuses() {
+        List<MTEHatchInputBus> inputBuses = new ArrayList<>();
+        for (Object hatch : GTUtility.validMTEList(mInputBusses)) {
+            if (hatch instanceof MTEHatchInputBus inputBus) {
+                inputBuses.add(inputBus);
+            }
+        }
+        return inputBuses;
+    }
+
+    private int getTotalCurrency(CurrencyType type) {
+        int total = 0;
+        for (FinancialHatch hatch : financialHatches) {
+            total += hatch.countCurrency(type);
+        }
+        return total;
+    }
+
+    private void resetRecipeCurrencyState() {
+        currentRecipeCurrencyType = null;
+        currentRecipeCurrencyCost = 0;
+    }
+
     protected CheckRecipeResult validateRecipeAccess(@NotNull GTRecipe recipe) {
+        resetRecipeCurrencyState();
         if (getStructureTier() < TIER_I) {
             return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
         }
@@ -538,8 +632,29 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         }
 
         String supplierIdString = recipe.getMetadata(AHTechRecipeMetadata.SUPPLIER_ID);
-        return isSupplierRecipeAccessible(supplierIdString) ? CheckRecipeResultRegistry.SUCCESSFUL
-            : CheckRecipeResultRegistry.NO_RECIPE;
+        if (!isSupplierRecipeAccessible(supplierIdString)) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+
+        if (!Config.EnableFinancialSystem) {
+            return CheckRecipeResultRegistry.SUCCESSFUL;
+        }
+
+        CurrencyType currencyType = recipe.getMetadata(AHTechRecipeMetadata.CURRENCY_TYPE);
+        Integer currencyCost = recipe.getMetadata(AHTechRecipeMetadata.CURRENCY_COST);
+        if (currencyType == null || currencyCost == null || currencyCost <= 0) {
+            return CheckRecipeResultRegistry.SUCCESSFUL;
+        }
+        if (financialHatches.isEmpty()) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        if (getTotalCurrency(currencyType) < currencyCost) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+
+        currentRecipeCurrencyType = currencyType;
+        currentRecipeCurrencyCost = currencyCost;
+        return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
     protected boolean isSupplierRecipeAccessible(String supplierIdString) {
@@ -700,6 +815,46 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                 })
                     .setPos(6, 133)
                     .setSize(80, 10));
+
+        if (Config.EnableFinancialSystem) {
+            builder
+                .widget(
+                    new TextWidget()
+                        .setStringSupplier(
+                            () -> StatCollector.translateToLocalFormatted("AHTech.UI.Finance", getFinancialStatusTextForUi()))
+                        .setDefaultColor(0xFFD700)
+                        .setPos(6, 143)
+                        .setSize(160, 10));
+
+            builder.widget(
+                new FakeSyncWidget.IntegerSyncer(this::getFinancialHatchCount, val -> syncedFinancialHatchCount = val));
+            for (int i = 0; i < CurrencyType.values().length; i++) {
+                CurrencyType type = CurrencyType.values()[i];
+                int index = i;
+                builder.widget(
+                    new FakeSyncWidget.IntegerSyncer(() -> getTotalCurrency(type), val -> syncedFinancialCounts[index] = val));
+            }
+        }
+    }
+
+    private int getFinancialHatchCount() {
+        return financialHatches.size();
+    }
+
+    private String getFinancialStatusTextForUi() {
+        if (syncedFinancialHatchCount <= 0) {
+            return StatCollector.translateToLocal("AHTech.UI.Finance.NoHatch");
+        }
+
+        List<String> balances = new ArrayList<>();
+        CurrencyType[] types = CurrencyType.values();
+        for (int i = 0; i < types.length; i++) {
+            if (syncedFinancialCounts[i] > 0) {
+                balances.add(types[i].getName() + "x" + syncedFinancialCounts[i]);
+            }
+        }
+        return balances.isEmpty() ? StatCollector.translateToLocal("AHTech.UI.Finance.Empty")
+            : String.join(" | ", balances);
     }
 
     // endregion

@@ -109,6 +109,19 @@ public enum ModItemList {
     SupplierDitong,
     // endregion
 
+    // region Currency
+    CurrencyCopper,
+    CurrencySteel,
+    CurrencyTitanium,
+    CurrencyPlatinum,
+    CurrencyNeutronium,
+    CurrencyInfinity,
+    // endregion
+
+    // region Financial Hatch
+    FinancialHatch,
+    // endregion
+
     ;
 
     private ItemStack mStack;

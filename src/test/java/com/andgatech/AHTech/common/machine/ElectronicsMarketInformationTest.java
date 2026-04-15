@@ -25,6 +25,7 @@ class ElectronicsMarketInformationTest {
         market.contractTier = ContractTier.LV2;
         market.activeSuppliers = EnumSet.of(SupplierId.SHANDONG_DEZHOU, SupplierId.YADEPIAN);
         market.perfectOverclock = true;
+        market.financialStatus = "copperx12 | steelx3";
         market.addFunctionType(FunctionType.GENERAL_DISASSEMBLY);
 
         assertArrayEquals(
@@ -38,7 +39,8 @@ class ElectronicsMarketInformationTest {
                 "Speed Bonus: 250%",
                 "Recovery Rate: 70%",
                 "Perfect Overclock: ON",
-                "Modules: General Disassembly" },
+                "Modules: General Disassembly",
+                "Finance: copperx12 | steelx3" },
             market.getInfoData());
     }
 
@@ -51,6 +53,7 @@ class ElectronicsMarketInformationTest {
         market.recoveryRate = 0.9F;
         market.contractTier = ContractTier.NONE;
         market.perfectOverclock = false;
+        market.financialStatus = "No Hatch";
 
         assertEquals(
             Arrays.asList(
@@ -63,7 +66,8 @@ class ElectronicsMarketInformationTest {
                 "Speed Bonus: 400%",
                 "Recovery Rate: 90%",
                 "Perfect Overclock: OFF",
-                "Modules: None"),
+                "Modules: None",
+                "Finance: No Hatch"),
             market.reportMetrics());
     }
 
@@ -76,6 +80,7 @@ class ElectronicsMarketInformationTest {
         private ContractTier contractTier = ContractTier.NONE;
         private EnumSet<SupplierId> activeSuppliers = EnumSet.noneOf(SupplierId.class);
         private boolean perfectOverclock;
+        private String financialStatus = "Empty";
 
         private TestElectronicsMarket() {
             super("test.electronics.market");
@@ -114,6 +119,11 @@ class ElectronicsMarketInformationTest {
         @Override
         public boolean isEnablePerfectOverclock() {
             return perfectOverclock;
+        }
+
+        @Override
+        protected String getFinancialStatusLine() {
+            return financialStatus;
         }
     }
 }

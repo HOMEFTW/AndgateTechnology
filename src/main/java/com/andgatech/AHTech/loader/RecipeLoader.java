@@ -2,6 +2,7 @@ package com.andgatech.AHTech.loader;
 
 import com.andgatech.AHTech.config.Config;
 import com.andgatech.AHTech.recipe.commonRecipe.ShapedCraftRecipePool;
+import com.andgatech.AHTech.recipe.machineRecipe.CurrencyRecipePool;
 import com.andgatech.AHTech.recipe.machineRecipe.ElectronicsMarketRecipePool;
 import com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator;
 
@@ -17,6 +18,9 @@ public class RecipeLoader {
 
         if (Config.Enable_ElectronicsMarket) {
             ElectronicsMarketRecipePool.loadRecipes();
+        }
+        if (Config.EnableFinancialSystem) {
+            CurrencyRecipePool.loadRecipes();
         }
     }
 

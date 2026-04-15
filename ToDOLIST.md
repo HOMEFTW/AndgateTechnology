@@ -34,11 +34,7 @@
 - [x] 供应商舱口与合同联动解锁配方：Data Access Hatch 中的最高合同等级 + 已安装供应商共同决定可用配方
 - [ ] 八仓可升压，但仅影响配方速度；配方等级由合同决定
 
-### 阶段四：资金系统
-- [ ] 设计[资金]舱室模块（安装在大厦外部）
-- [ ] 创建货币物品链：[铜币] ← 铜锭合成、[银币]、[金币] 等
-- [ ] 不同等级配方消耗不同等级货币（初期铜币，后期需要更高级货币）
-- [ ] 资金舱室放在大厦外面，不占用内部空间
+
 
 ### 阶段五：锁科技与趣味内容
 - [ ] 设计锁科技模块（无具体功能，纯科技锁定）
@@ -92,3 +88,11 @@
 - [x] 版本 0.0.2-pre 推送至 GitHub
 
 ## 已拒绝 / 已延期
+
+## 2026-04-15 更新
+- [x] 资金系统首版实现：6 级货币、FinancialHatch、资金 metadata、ElectronicsMarket 资金校验与扣款
+- [x] 重写 `src/main/resources/assets/andgatetechnology/lang/zh_CN.lang`，修复旧文件乱码、多 key 串行与中文本地化缺失问题
+- [ ] 为更多 `ElectronicsMarket` 配方逐步补充 `CURRENCY_TYPE` / `CURRENCY_COST`
+- [ ] 视需要补充“资金不足”专用提示文案或自定义 `CheckRecipeResult`
+- [ ] 如需彻底消除语言预处理阶段的 `comments` 警告，后续可单独检查 `addon.gradle` 的 lang 解析逻辑
+- [ ] 如果后续继续维护本地化，统一使用 UTF-8，并在命令行检查时显式指定 `-Encoding UTF8`

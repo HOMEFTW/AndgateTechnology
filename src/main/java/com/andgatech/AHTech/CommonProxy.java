@@ -2,6 +2,7 @@ package com.andgatech.AHTech;
 
 import com.andgatech.AHTech.config.Config;
 import com.andgatech.AHTech.loader.ContractLoader;
+import com.andgatech.AHTech.loader.CurrencyLoader;
 import com.andgatech.AHTech.loader.MachineLoader;
 import com.andgatech.AHTech.loader.MaterialLoader;
 import com.andgatech.AHTech.loader.RecipeLoader;
@@ -21,6 +22,9 @@ public class CommonProxy {
 
         MaterialLoader.load();
         ContractLoader.loadContracts();
+        if (Config.EnableFinancialSystem) {
+            CurrencyLoader.loadCurrencies();
+        }
     }
 
     public void init(FMLInitializationEvent event) {

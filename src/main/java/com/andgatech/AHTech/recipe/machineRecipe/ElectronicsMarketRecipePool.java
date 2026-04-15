@@ -4,6 +4,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 
 import com.andgatech.AHTech.AndgateTechnology;
+import com.andgatech.AHTech.common.currency.CurrencyType;
 import com.andgatech.AHTech.common.supplier.SupplierId;
 import com.andgatech.AHTech.recipe.metadata.AHTechRecipeMetadata;
 import com.andgatech.AHTech.recipe.recipeMap.AHTechRecipeMaps;
@@ -85,6 +86,8 @@ public class ElectronicsMarketRecipePool {
                     .itemInputs(GTUtility.copyAmountUnsafe(1, cableStack))
                     .itemOutputs(wireStack, rubberStack)
                     .metadata(AHTechRecipeMetadata.SUPPLIER_ID, SupplierId.SHANDONG_DEZHOU.getId())
+                    .metadata(AHTechRecipeMetadata.CURRENCY_TYPE, CurrencyType.COPPER)
+                    .metadata(AHTechRecipeMetadata.CURRENCY_COST, 2)
                     .eut(TierEU.RECIPE_LV)
                     .duration(100)
                     .addTo(EM);
@@ -132,6 +135,8 @@ public class ElectronicsMarketRecipePool {
             .itemInputs(glassInput, osmiridiumFoil)
             .itemOutputs(outputTube)
             .metadata(AHTechRecipeMetadata.SUPPLIER_ID, SupplierId.GAIGUANG.getId())
+            .metadata(AHTechRecipeMetadata.CURRENCY_TYPE, CurrencyType.STEEL)
+            .metadata(AHTechRecipeMetadata.CURRENCY_COST, 5)
             .specialValue(2)
             .eut(TierEU.RECIPE_HV)
             .duration(200)

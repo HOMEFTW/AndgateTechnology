@@ -1,5 +1,44 @@
 # 开发日志
 
+## 2026-04-15: `zh_CN.lang` 重新整理
+
+### 已完成
+- 删除了旧的 `zh_CN.lang` 乱码/串行内容，按当前 `en_US.lang` 与实际代码 key 重新生成了一份干净的中文语言文件
+- 为资金系统相关 key 补齐正式中文翻译，包括 `AHTech.UI.Finance`、`AHTech.FinancialHatch.*` 和 6 种货币名称
+- 用 `Get-Content -Encoding UTF8` 重新读取文件，确认文件内容本身为正常 UTF-8 中文，不再依赖终端默认编码判断
+
+### 备注
+- PowerShell 默认输出编码会把 UTF-8 中文显示成乱码；显式使用 `-Encoding UTF8` 时内容正常
+- `./gradlew test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketInformationTest` 仍可通过
+
+---
+
+## 2026-04-15: 资金系统实现与 `zh_CN.lang` 重写
+
+### 已完成
+- 根据 `2026-04-15-financial-system-design.md` 与 `2026-04-15-financial-system.md` 实现资金系统首版
+- 新增 `CurrencyType`、`CurrencyItem`、`CurrencyLoader`、`CurrencyRecipePool`，完成 6 级货币物品与压模/成型配方注册
+- 新增 `FinancialHatch`，支持货币过滤、计数、跨堆叠扣除与从输入总线自动补币
+- 扩展 `ModItemList`、`ModularHatchType`、`MachineLoader`、`RecipeLoader`、`CommonProxy` 与 `Config`，将资金系统接入物品注册、舱口注册、配方加载与配置开关
+- 扩展 `AHTechRecipeMetadata`，新增 `CURRENCY_TYPE` 与 `CURRENCY_COST`
+- 为 `ElectronicsMarket` 接入资金舱扫描、余额汇总、配方启动前资金校验、成功处理后的货币扣除，以及主机 UI / 工业信息屏资金状态显示
+- 为现有示例配方补充货币消耗 metadata：线缆拆解使用铜币，Laser Vacuum Pipe 使用钢币
+- 新增或更新 `CurrencyTypeTest`、`CurrencyItemTest`、`FinancialHatchTest`、`ElectronicsMarketInformationTest`
+- 完整重写 `src/main/resources/assets/andgatetechnology/lang/zh_CN.lang`，修复旧文件乱码、断行与多 key 串行问题，并补齐资金系统相关中文翻译
+
+### 验证
+- `./gradlew compileJava`
+- `./gradlew test --tests com.andgatech.AHTech.common.currency.CurrencyTypeTest --tests com.andgatech.AHTech.common.currency.CurrencyItemTest --tests com.andgatech.AHTech.common.modularizedMachine.modularHatches.FinancialHatchTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketInformationTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketSupplierAccessTest`
+- `./gradlew test`
+
+### 遇到的问题
+- `CurrencyRecipePool` 初次编译时存在 `formingPressRecipes` 导入方式错误，以及 `TierEU` 为 `long` 的兼容问题，已修正
+- `FinancialHatchTest` 直接调用注册型 MetaTileEntity 构造器会触发 GT load-phase 限制，已改用未注册构造路径测试库存逻辑
+- PowerShell 默认控制台编码会把 UTF-8 中文显示成乱码；文件本身已用 `Get-Content -Encoding UTF8` 确认正常
+
+### 反思
+- `gtnh-dev-logging` 已触发，但我在上一次收尾时没有先把 `log.md`、`ToDOLIST.md`、`context.md` 三份文档完整更新就结束响应，这是执行不完整，不是 skill 没触发
+
 ## 2026-04-14: 合同与供应商系统实现
 
 ### 已完成
@@ -266,5 +305,3 @@
 - 包名: `com.andgatech.AHTech`（用户指定）
 - Meta ID 范围: 未分配，待后续添加机器时确定（避开 TST 使用的 18791-19080）
 - Git 用户临时设为 `developer@andgate.tech`，需用户后续更新
-
----

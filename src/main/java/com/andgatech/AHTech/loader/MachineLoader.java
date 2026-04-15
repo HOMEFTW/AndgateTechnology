@@ -2,6 +2,7 @@ package com.andgatech.AHTech.loader;
 
 import com.andgatech.AHTech.common.ModItemList;
 import com.andgatech.AHTech.common.machine.ElectronicsMarket;
+import com.andgatech.AHTech.common.modularizedMachine.modularHatches.FinancialHatch;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.RecoveryRateModule;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.executionCore.AdvExecutionCore;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.executionCore.ExecutionCore;
@@ -75,7 +76,11 @@ public class MachineLoader {
 
         // AHTech-exclusive modules: always register (TST does not have these)
         id = registerAHTechExclusiveModules(id);
-        registerSupplierHatches(id);
+        id = registerSupplierHatches(id);
+        if (Config.EnableFinancialSystem) {
+            ModItemList.FinancialHatch
+                .set(new FinancialHatch(id++, "FinancialHatch", "Financial Hatch", 0).getStackForm(1L));
+        }
     }
 
     /**
@@ -436,7 +441,7 @@ public class MachineLoader {
         return id;
     }
 
-    private static void registerSupplierHatches(int id) {
+    private static int registerSupplierHatches(int id) {
         // 供应商不使用 tier 体系，传 0 以避免 isCompatibleWithMachine 误判
         registerSupplier(id++, ModItemList.SupplierShandongDezhou, SupplierId.SHANDONG_DEZHOU);
         registerSupplier(id++, ModItemList.SupplierYadepian, SupplierId.YADEPIAN);
@@ -444,7 +449,8 @@ public class MachineLoader {
         registerSupplier(id++, ModItemList.SupplierChaola, SupplierId.CHAOLA);
         registerSupplier(id++, ModItemList.SupplierHuangweida, SupplierId.HUANGWEIDA);
         registerSupplier(id++, ModItemList.SupplierGaiguang, SupplierId.GAIGUANG);
-        registerSupplier(id, ModItemList.SupplierDitong, SupplierId.DITONG);
+        registerSupplier(id++, ModItemList.SupplierDitong, SupplierId.DITONG);
+        return id;
     }
 
     private static void registerSupplier(int id, ModItemList itemEntry, SupplierId supplierId) {
