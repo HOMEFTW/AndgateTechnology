@@ -4,6 +4,8 @@ import java.io.File;
 
 import net.minecraftforge.common.config.Configuration;
 
+import gregtech.api.enums.GTValues;
+
 public class Config {
 
     public static final String GENERAL = "General";
@@ -17,6 +19,7 @@ public class Config {
     // region Electronics Market
     public static boolean Enable_ElectronicsMarket = true;
     public static double Stage1_BaseRecoveryRate = 0.30;
+    public static int Stage2_MaxVoltageTier = 8;
     // endregion
 
     // region Modularization
@@ -81,6 +84,13 @@ public class Config {
             "Enable/disable Electronics Market multiblock.");
         Stage1_BaseRecoveryRate = (double) configuration
             .getFloat("Stage1BaseRecoveryRate", "ElectronicsMarket", 0.30f, 0.0f, 1.0f, "Stage I base recycling rate.");
+        Stage2_MaxVoltageTier = configuration.getInt(
+            "Stage2MaxVoltageTier",
+            "ElectronicsMarket",
+            8,
+            1,
+            GTValues.V.length - 1,
+            "Maximum voltage tier allowed for Tier II Electronics Market recipes. Tier III has no voltage limit.");
         // Modularization
         EnableModularizedMachineSystem = configuration.getBoolean(
             "EnableModularizedMachineSystem",
@@ -128,5 +138,10 @@ public class Config {
         if (configuration.hasChanged()) {
             configuration.save();
         }
+    }
+
+    public static long getStage2_MaxVoltageEUt() {
+        int clampedTier = Math.max(1, Math.min(Stage2_MaxVoltageTier, GTValues.V.length - 1));
+        return GTValues.V[clampedTier];
     }
 }

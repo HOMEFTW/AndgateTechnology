@@ -267,6 +267,18 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         return true; // Allow multiple hatches of the same type to stack
     }
 
+    @Override
+    public int getMaxAllowedModuleTier(ModularHatchType type) {
+        if (getStructureTier() >= TIER_II) {
+            return switch (type) {
+                case PARALLEL_CONTROLLER, SPEED_CONTROLLER, OVERCLOCK_CONTROLLER, POWER_CONSUMPTION_CONTROLLER,
+                    EXECUTION_CORE -> Integer.MAX_VALUE;
+                default -> getStructureTier();
+            };
+        }
+        return getStructureTier();
+    }
+
     /**
      * Stage I: skip module application, use hardcoded parameters only.
      * Stage II/III: apply module effects normally via super.
@@ -770,6 +782,9 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         }
         if (recipe.mSpecialValue == 2 && getStructureTier() < TIER_II) {
             return CheckRecipeResultRegistry.insufficientMachineTier(getStructureTier());
+        }
+        if ((getStructureTier() == TIER_II) && (recipe.mEUt > Config.getStage2_MaxVoltageEUt())) {
+            return SimpleCheckRecipeResult.ofFailure("voltage_exceeded");
         }
 
         String supplierIdString = recipe.getMetadata(AHTechRecipeMetadata.SUPPLIER_ID);

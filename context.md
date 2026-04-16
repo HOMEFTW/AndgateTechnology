@@ -8,6 +8,16 @@
 - 目标环境: MC 1.7.10 + Forge 10.13.4.1614 + GTNH 2.8.4
 - Gradle: 8.14.3, RetroFuturaGradle + GTNH Convention 1.0.50
 
+## 2026-04-16 最新实现状态
+- `ElectronicsMarket` 已按 `docs/superpowers/specs/2026-04-16-tier3-specialization-design.md` 落地三级结构差异化
+- Tier II 现在新增配方电压上限：默认 `Stage2_MaxVoltageTier = 8`（UV）；当配方 `mEUt` 超过 `Config.getStage2_MaxVoltageEUt()` 时返回 `SimpleCheckRecipeResult.ofFailure("voltage_exceeded")`
+- Tier III 不再受上述 Stage II 电压上限约束，可继续执行更高电压的已解锁配方
+- 模块等级门控已抽象为 `ModularizedMachineBase.getMaxAllowedModuleTier(ModularHatchType)`：
+  - `ElectronicsMarket` 在 Tier II/III 下对标准模块（并行/速度/超频/功耗/执行核心）返回 `Integer.MAX_VALUE`
+  - AHTech 独占模块仍按 `structureTier >= moduleTier` 处理，保留原有回收率/功能模块门禁
+- 新增 `ElectronicsMarketTierSpecializationBehaviorTest`，覆盖 Tier II/III 电压门禁、标准模块放开、AHTech 独占模块保持门禁，以及 Tier I 兼容性不变
+- 当前验证方式仍为 `./gradlew.bat "-Pelytra.manifest.version=true" test`；本轮定向测试与全量测试均已通过
+
 ## 2026-04-15 最新审查状态
 - 已完成对 `ToDOLIST.md`、`log.md`、`context.md` 与核心代码的静态检查，并通过 `./gradlew test` 验证当前测试基线
 - 这两项审查问题现已处理：
@@ -187,6 +197,7 @@ _(暂无)_
 | DEFAULT_BATCH_MODE | false | 机器默认批处理模式 |
 | Enable_ElectronicsMarket | true | 启用/禁用美弱南电子市场 |
 | Stage1_BaseRecoveryRate | 0.30 | 一阶段基础回收率 |
+| Stage2_MaxVoltageTier | 8 | Tier II 允许的最高配方电压等级；默认 UV |
 | EnableModularizedMachineSystem | true | 启用/禁用模块化系统 |
 | RecoveryModuleLv1Rate | 0.50 | Lv1 回收率模块数值 |
 | RecoveryModuleLv2Rate | 0.70 | Lv2 回收率模块数值 |
@@ -242,8 +253,11 @@ _(暂无)_
 - 静态模块: 在 `checkMachine()` 期间通过 `onCheckMachine()` 应用
 - 动态模块: 在 `checkProcessing()` 期间通过 `onCheckProcessing()` 应用（预留给未来）
 - 一阶段: 固定 30% 回收率、硬编码 4 并行、不应用模块化系统（`checkModularStaticSettings()` 覆写跳过模块应用）、仅允许硬编码基础配方
-- 二阶段及以上: 回收率与性能由已安装模块决定；功能模块决定可用配方类别
-- 所有模块（包括并行/速度/超频/功耗/执行核心）均在 `onCheckMachine()` / `onCheckProcessing()` 中通过 `isCompatibleWithMachine()` 检查等级兼容性；高等级模块安装到低等级结构上静默不生效
+- 二阶段: 回收率与性能由已安装模块决定；功能模块决定可用配方类别；同时新增可配置的 UV 级配方电压上限
+- 三阶段: 延续二阶段模块化能力，但不再受 `Stage2_MaxVoltageTier` 限制
+- 模块兼容性统一走 `ModularizedMachineBase.getMaxAllowedModuleTier(...)`
+- 标准模块（并行/速度/超频/功耗/执行核心）在 `ElectronicsMarket` 的 Tier II/III 下已放开等级门控
+- AHTech 独占模块（回收率、功能模块）仍通过 `isCompatibleWithMachine()` 保持 `structureTier >= moduleTier` 检查
 - 配方分类: `specialValue(0)=硬编码`，`specialValue(1)=通用拆解`，`specialValue(2)=需要二阶段及以上`
 - 供应商模块属于独立的模块类型 `ModularHatchType.SUPPLIER`，激活列表受合同等级限制
 - 供应商舱口与 `FinancialHatch` 的注册不再依赖标准模块开关；即使关闭 `EnableModularizedMachineSystem`，只要对应功能开启，它们仍保持可用

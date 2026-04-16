@@ -30,7 +30,7 @@ public abstract class ModularHatchBase extends MTEHatch implements IModularHatch
     }
 
     public boolean isCompatibleWithMachine(ModularizedMachineBase<?> machine) {
-        return machine.getStructureTier() >= moduleTier;
+        return machine.getMaxAllowedModuleTier(getType()) >= moduleTier;
     }
 
     /**

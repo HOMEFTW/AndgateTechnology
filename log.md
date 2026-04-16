@@ -1,5 +1,27 @@
 ﻿# 开发日志
 
+## 2026-04-16: 三级结构差异化落地
+### 已完成
+- 根据 `docs/superpowers/specs/2026-04-16-tier3-specialization-design.md` 为 `ElectronicsMarket` 落地三级结构差异化：
+  - Tier II 新增配方电压上限，超过配置的 Stage II 电压上限时返回 `voltage_exceeded`
+  - Tier II/III 对标准模块类型（并行/速度/超频/功耗/执行核心）放开模块等级门控
+  - AHTech 独占模块（回收率/功能模块等）继续保持 `structureTier >= moduleTier` 门控
+- 在 `ModularizedMachineBase` 新增 `getMaxAllowedModuleTier(ModularHatchType)` 扩展点，并让 `ModularHatchBase.isCompatibleWithMachine()` 统一走该扩展点
+- 在 `Config` 中新增 `Stage2_MaxVoltageTier` 与 `getStage2_MaxVoltageEUt()`，使 Tier II 电压上限可配置
+- 新增 `ElectronicsMarketTierSpecializationBehaviorTest`，覆盖 Tier II/III 配方电压门禁、标准模块放开、AHTech 独占模块仍受限，以及 Tier I 旧行为保持不变
+- 为 `voltage_exceeded` 补齐 `en_US.lang` / `zh_CN.lang` 提示文案
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketTierSpecializationBehaviorTest` 通过
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketFinancialBehaviorTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketModuleMaintenanceBehaviorTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketSupplierAccessTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketTierSpecializationBehaviorTest` 通过
+- `./gradlew.bat "-Pelytra.manifest.version=true" test` 通过
+- 仍有已有预处理警告：`[Translation Missing] Key 'comments' missing in 'zh_CN'`
+
+### 决策记录
+- 设计文档中 `Config.Stage2_MaxVoltageTierEUt` 与 `getStage2_MaxVoltageEUt()` 命名存在轻微不一致；本次按项目现有配置风格实现为 `Stage2_MaxVoltageTier + getStage2_MaxVoltageEUt()`
+- 标准模块放开不改各模块类本身，而是把兼容性决策收口到 `ModularizedMachineBase.getMaxAllowedModuleTier(...)`，避免后续再出现每类模块各改一份的分叉
+
+---
 ## 2026-04-15: 重新打通 Gradle 测试通道并完成验证
 ### 已完成
 - 重新测试 `ElectronicsMarketFinancialBehaviorTest`，确认修复后的并行货币与单件回收率回归用例通过

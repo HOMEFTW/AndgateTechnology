@@ -2,6 +2,7 @@
 # Translation keys are auto-generated from //#tr comments in source code.
 # Manual entries can be added here.
 comments=via addon.gradle preprocessing.
+GT5U.gui.text.voltage_exceeded=配方电压超过二级结构上限。
 
 # UI
 AHTech.UI.Stage=阶段: %s

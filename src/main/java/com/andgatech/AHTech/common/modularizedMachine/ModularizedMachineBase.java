@@ -68,6 +68,14 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
      */
     public abstract int getStructureTier();
 
+    /**
+     * Returns the maximum module tier allowed for the given hatch type.
+     * Subclasses can override this to relax or tighten compatibility per module category.
+     */
+    public int getMaxAllowedModuleTier(ModularHatchType type) {
+        return getStructureTier();
+    }
+
     // endregion
 
     // region Supported Modular Hatch Types
