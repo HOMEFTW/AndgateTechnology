@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,15 +28,9 @@ class ElectronicsMarketInformationTest {
         market.addFunctionType(FunctionType.GENERAL_DISASSEMBLY);
 
         assertArrayEquals(
-            new String[] {
-                "Electronics Market",
-                "Status: Idle",
-                "Stage: II | Contract: Lv2",
-                "Suppliers: 2 | Parallel: 33",
-                "Speed Bonus: 250%",
-                "Recovery Rate: 70% | Perfect Overclock: ON",
-                "Modules: General Disassembly",
-                "Finance: copperx12 | steelx3" },
+            new String[] { "Electronics Market", "Status: Idle", "Stage: II | Contract: Lv2",
+                "Suppliers: 2 | Parallel: 33", "Speed Bonus: 250%", "Recovery Rate: 70% | Perfect Overclock: ON",
+                "Modules: General Disassembly", "Finance: copperx12 | steelx3" },
             market.getInfoData());
     }
 

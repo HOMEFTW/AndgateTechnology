@@ -118,11 +118,8 @@ public class Config {
             0.0f,
             1.0f,
             "Recovery rate for Lv3 Recovery Module.");
-        EnableFinancialSystem = configuration.getBoolean(
-            "EnableFinancialSystem",
-            "FinancialSystem",
-            true,
-            "Enable/disable the financial system.");
+        EnableFinancialSystem = configuration
+            .getBoolean("EnableFinancialSystem", "FinancialSystem", true, "Enable/disable the financial system.");
         EnableAutoRefillFromInputBus = configuration.getBoolean(
             "EnableAutoRefillFromInputBus",
             "FinancialSystem",

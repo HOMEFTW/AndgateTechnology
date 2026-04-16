@@ -3,9 +3,9 @@ package com.andgatech.AHTech.common.supplier;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.andgatech.AHTech.common.contract.ContractTier;
-
 import org.junit.jupiter.api.Test;
+
+import com.andgatech.AHTech.common.contract.ContractTier;
 
 class SupplierIdTest {
 

@@ -331,7 +331,8 @@ public class RecyclingRecipeGenerator {
             return candidateTotal < existingTotal;
         }
 
-        return buildCanonicalRecipeSignature(candidateInputs).compareTo(buildCanonicalRecipeSignature(existingInputs)) < 0;
+        return buildCanonicalRecipeSignature(candidateInputs).compareTo(buildCanonicalRecipeSignature(existingInputs))
+            < 0;
     }
 
     private static int countValidInputs(ItemStack[] inputs) {

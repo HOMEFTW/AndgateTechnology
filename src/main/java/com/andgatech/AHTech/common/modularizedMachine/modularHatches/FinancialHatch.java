@@ -11,10 +11,10 @@ import com.andgatech.AHTech.common.currency.CurrencyItem;
 import com.andgatech.AHTech.common.currency.CurrencyType;
 import com.andgatech.AHTech.common.modularizedMachine.ModularHatchType;
 import com.andgatech.AHTech.config.Config;
-import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
-import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -164,7 +164,8 @@ public class FinancialHatch extends ModularHatchBase {
     }
 
     private boolean canStackTogether(ItemStack left, ItemStack right) {
-        return left != null && right != null && left.getItem() == right.getItem()
+        return left != null && right != null
+            && left.getItem() == right.getItem()
             && left.getItemDamage() == right.getItemDamage()
             && left.stackSize < left.getMaxStackSize();
     }
@@ -182,8 +183,7 @@ public class FinancialHatch extends ModularHatchBase {
         super.addUIWidgets(builder, buildContext);
 
         builder.widget(
-            new TextWidget(StatCollector.translateToLocal("AHTech.FinancialHatch.Title"))
-                .setDefaultColor(0xFFD700)
+            new TextWidget(StatCollector.translateToLocal("AHTech.FinancialHatch.Title")).setDefaultColor(0xFFD700)
                 .setPos(6, 4)
                 .setSize(70, 10));
 
@@ -199,16 +199,19 @@ public class FinancialHatch extends ModularHatchBase {
                         .setDefaultColor(0xE0E0E0)
                         .setPos(x, y)
                         .setSize(50, 10))
-                .widget(new FakeSyncWidget.IntegerSyncer(() -> countCurrency(type), val -> syncedCurrencyCounts[index] = val));
+                .widget(
+                    new FakeSyncWidget.IntegerSyncer(
+                        () -> countCurrency(type),
+                        val -> syncedCurrencyCounts[index] = val));
         }
 
         builder.widget(
-            new TextWidget().setStringSupplier(
-                () -> StatCollector.translateToLocalFormatted(
-                    "AHTech.FinancialHatch.AutoRefill",
-                    Config.EnableAutoRefillFromInputBus
-                        ? StatCollector.translateToLocal("AHTech.Common.Enabled")
-                        : StatCollector.translateToLocal("AHTech.Common.Disabled")))
+            new TextWidget()
+                .setStringSupplier(
+                    () -> StatCollector.translateToLocalFormatted(
+                        "AHTech.FinancialHatch.AutoRefill",
+                        Config.EnableAutoRefillFromInputBus ? StatCollector.translateToLocal("AHTech.Common.Enabled")
+                            : StatCollector.translateToLocal("AHTech.Common.Disabled")))
                 .setDefaultColor(0x55FFFF)
                 .setPos(6, 56)
                 .setSize(160, 10));

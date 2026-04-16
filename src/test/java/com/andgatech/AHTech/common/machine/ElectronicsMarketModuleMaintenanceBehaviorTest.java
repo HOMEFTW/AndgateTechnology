@@ -16,8 +16,11 @@ class ElectronicsMarketModuleMaintenanceBehaviorTest {
     @Test
     void maintenanceTrackingKeepsTstInteropModulesOutsideAHTechMaintenancePool() {
         TestElectronicsMarket market = new TestElectronicsMarket();
-        StaticParallelController aHTechModule =
-            new StaticParallelController("test.ahtech.parallel", 7, 8, new ITexture[0][][]);
+        StaticParallelController aHTechModule = new StaticParallelController(
+            "test.ahtech.parallel",
+            7,
+            8,
+            new ITexture[0][][]);
         Object tstModule = new Object();
 
         market.addAHTechModularHatch(aHTechModule);
@@ -26,7 +29,10 @@ class ElectronicsMarketModuleMaintenanceBehaviorTest {
         Collection<IModularHatch> maintained = market.getModulesSubjectToMaintenanceForTest();
 
         assertEquals(1, maintained.size());
-        assertEquals(aHTechModule, maintained.iterator().next());
+        assertEquals(
+            aHTechModule,
+            maintained.iterator()
+                .next());
     }
 
     private static final class TestElectronicsMarket extends ElectronicsMarket {

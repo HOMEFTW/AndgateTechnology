@@ -1,0 +1,132 @@
+// 赛格大厦多方块机器 - 自动生成的代码骨架
+// 总尺寸约: 9W x 40H x 9D
+// 结构: 底座(13层) + 塔楼(20层x9x9) + 皇冠(7层)
+
+package com.andgatech.AHTech.common.machine;
+
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.*;
+import static gregtech.api.enums.HatchElement.*;
+import static gregtech.api.util.GTStructureUtility.*;
+
+import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.metatileentity.IGregTechTileEntity;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTETieredMachine;
+import gregtech.api.recipe.RecipeMap;
+import gregtech.api.util.HatchElementBuilder;
+import net.minecraft.item.ItemStack;
+
+public class TST_SegPlaza extends GTCM_MultiMachineBase<TST_SegPlaza> {
+
+    private static final String STRUCTURE_PIECE_BASE = "base";
+    private static final String STRUCTURE_PIECE_TOWER = "tower";
+    private static final String STRUCTURE_PIECE_CROWN = "crown";
+
+    // 控制器偏移量（在 base piece 中的位置）
+    private static final int horizontalOff = 4;
+    private static final int verticalOff = 1;
+    private static final int depthOff = 0;
+
+    // 塔楼重复层数（可通过 stackSize 调节）
+    private static final int TOWER_MIN_LAYERS = 5;
+    private static final int TOWER_MAX_LAYERS = 20;
+    private int mTowerLayers = 0;
+
+    // -- Constructors --
+    public TST_SegPlaza(int aID, String aName, String aNameRegional) {
+        super(aID, aName, aNameRegional);
+    }
+
+    public TST_SegPlaza(String aName) { super(aName); }
+
+    @Override
+    public IMetaTileEntity newMetaEntity() { return new TST_SegPlaza(mName); }
+
+    // -- Structure Definition --
+    private static IStructureDefinition<TST_SegPlaza> STRUCTURE_DEF = null;
+
+    @Override
+    public IStructureDefinition<TST_SegPlaza> getStructureDefinition() {
+        if (STRUCTURE_DEF == null) {
+            STRUCTURE_DEF = StructureDefinition.<TST_SegPlaza>builder()
+                .addShape(STRUCTURE_PIECE_BASE, transpose(new String[][]{
+                    // TODO: 粘贴 base 层数组
+                    // ('         ', '  BBBBB  ', Ellipsis),
+                }))
+                .addShape(STRUCTURE_PIECE_TOWER, transpose(new String[][]{
+                    // 单层塔楼 (重复使用)
+                    // ('TTTTT', 'T---T', 'T---T', 'T---T', 'TTTTT'),
+                }))
+                .addShape(STRUCTURE_PIECE_CROWN, transpose(new String[][]{
+                    // TODO: 粘贴 crown 层数组
+                }))
+                .addElement('B', ofBlock(GregTechAPI.sBlockCasings2, 15))  // 底座方块
+                .addElement('T', ofBlock(GregTechAPI.sBlockCasings4, 1))   // 塔楼方块
+                .addElement('C', ofBlock(GregTechAPI.sBlockCasings3, 2))   // 皇冠方块
+                .addElement('H',
+                    HatchElementBuilder.<TST_SegPlaza>builder()
+                        .atLeast(InputBus, OutputBus, InputHatch, OutputHatch, Energy.or(ExoticEnergy))
+                        .adder(TST_SegPlaza::addToMachineList)
+                        .dot(1)
+                        .casingIndex(48)
+                        .buildAndChain(GregTechAPI.sBlockCasings2, 15))
+                .build();
+        }
+        return STRUCTURE_DEF;
+    }
+
+    // -- 动态结构检查 --
+    @Override
+    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+        repairMachine();
+        mTowerLayers = 0;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, horizontalOff, verticalOff, depthOff))
+            return false;
+        // 向上检查塔楼层
+        while (mTowerLayers < TOWER_MAX_LAYERS) {
+            int towerY = verticalOff + 13 + mTowerLayers;
+            if (!checkPiece(STRUCTURE_PIECE_TOWER,
+                    horizontalOff - (9 - B) // 2,
+                    towerY,
+                    depthOff - (9 - B) // 2))
+                break;
+            mTowerLayers++;
+        }
+        if (mTowerLayers < TOWER_MIN_LAYERS) return false;
+        // 检查皇冠
+        int crownY = verticalOff + 13 + mTowerLayers;
+        return checkPiece(STRUCTURE_PIECE_CROWN,
+            horizontalOff, crownY, depthOff);
+    }
+
+    @Override
+    public void construct(ItemStack stackSize, boolean hintsOnly) {
+        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, horizontalOff, verticalOff, depthOff);
+        int layers = Math.min(TOWER_MAX_LAYERS,
+            Math.max(TOWER_MIN_LAYERS, stackSize != null ? stackSize.stackSize : TOWER_MAX_LAYERS));
+        for (int i = 0; i < layers; i++) {
+            int towerY = verticalOff + 13 + i;
+            buildPiece(STRUCTURE_PIECE_TOWER, stackSize, hintsOnly,
+                horizontalOff, towerY, depthOff);
+        }
+        int crownY = verticalOff + 13 + layers;
+        buildPiece(STRUCTURE_PIECE_CROWN, stackSize, hintsOnly,
+            horizontalOff, crownY, depthOff);
+    }
+
+    @Override
+    public int survivalConstruct(ItemStack stackSize, int elementBudget,
+            ISurvivalBuildEnvironment env) {
+        if (this.mMachine) return -1;
+        return survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize,
+            horizontalOff, verticalOff, depthOff, elementBudget, env, false, true);
+    }
+
+    // -- Recipe Map --
+    @Override
+    public RecipeMap<?> getRecipeMap() {
+        return null; // TODO: 指定配方表
+    }
+}

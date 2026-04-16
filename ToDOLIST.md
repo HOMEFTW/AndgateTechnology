@@ -5,30 +5,29 @@
 核心概念：将美弱南电子市场从单台机器重构为模块化赛格大厦建筑系统。
 
 ### 阶段一：建筑与外观
-- [ ] 设计赛格大厦三级外观模型：一级=底部卖场、二级=中间扩充、三级=完整大厦
-- [ ] 实现大厦承重墙系统（承重墙=机器本体，外观可自由修改）
-- [ ] 添加默认赛格大厦投影外观
+- [x] 设计赛格大厦三级外观模型：一级=底部卖场（20层裙楼）、二级=裙楼+退台+4层塔楼+封顶（26层）、三级=完整大厦（220层）
+- [x] 按赛格大厦参考照片继续收紧外观：上段塔身改为弱收分、冠部底座加宽、顶部改为双桅杆
 
 ### 阶段二：模块化系统（二级结构及以上可用）
 
 #### 已完成
 - [x] 设计模块化接口：接口/基类/舱口三层架构完整（IModularizedMachine + 8 子接口、ModularizedMachineBase → ModularizedMachineSupportAllModuleBase、ModularHatchBase），共注册 58 个模块（标准 46 + AHTech 独占 12）
 - [x] 模块化系统基础运行：模块可安装、效果可应用、TST 互通正常
-- [x] 模块适配规则（等级门控）：全部 9 类模块的 `onCheckMachine()` / `onCheckProcessing()` 均调用 `isCompatibleWithMachine()`，高等级模块安装到低等级结构上静默不生效
-- [x] 一级结构限制：Stage I 通过 `checkModularStaticSettings()` 覆写显式跳过模块应用，配方门禁 + 模块禁装双重限制
-  - [x] 配方门禁：Stage I 只能执行 `specialValue == 0` 的线缆拆解配方
+- [x] 模块适配规则（等级门控）：全部 9 类模块的 onCheckMachine() / onCheckProcessing() 均调用 isCompatibleWithMachine()，高等级模块安装到低等级结构上静默不生效
+- [x] 一级结构限制：Stage I 通过 checkModularStaticSettings() 覆写显式跳过模块应用，配方门禁 + 模块禁装双重限制
+  - [x] 配方门禁：Stage I 只能执行 specialValue == 0 的线缆拆解配方
   - [x] 模块禁装：Stage I 不应用模块效果（硬编码 parallel=3，回收率=30%）
-- [x] 二级结构解锁模块化：通过 `checkModularStaticSettings()` 覆写实现显式分支，Stage II/III 走 `super` 正常应用模块
-  - [x] 配方解锁：`specialValue == 1` 的回收配方和 `specialValue == 2` 的高级配方在 Stage II 被放行
+- [x] 二级结构解锁模块化：通过 checkModularStaticSettings() 覆写实现显式分支，Stage II/III 走 super 正常应用模块
+  - [x] 配方解锁：specialValue == 1 的回收配方和 specialValue == 2 的高级配方在 Stage II 被放行
   - [x] 回收率切换：Stage I 固定 30%，Stage II/III 改为模块驱动
-  - [x] 显式模块化开关：`checkModularStaticSettings()` 按 structureTier 分支处理
+  - [x] 显式模块化开关：checkModularStaticSettings() 按 structureTier 分支处理
 - [x] 供电系统：模块维护耗电 + 供电不足吞材料
   - [x] 基础供电：能源仓放置于 'H' 位置，支持 PowerConsumption 模块调节耗能
-  - [x] 无线 EU：高级/完美执行核心使用 `WirelessNetworkManager`
-  - [x] 模块维护耗电：`ModularHatchBase.getMaintenanceEUt()` 按 tier 缩放，tier=0 无成本
-  - [x] 供电不足吞材料：存储 EU 不足以覆盖模块维护耗电时，产出清零但输入照扣（`Config.EnablePowerInsufficientMaterialLoss` 控制）
+  - [x] 无线 EU：高级/完美执行核心使用 WirelessNetworkManager
+  - [x] 模块维护耗电：ModularHatchBase.getMaintenanceEUt() 按 tier 缩放，tier=0 无成本
+  - [x] 供电不足吞材料：存储 EU 不足以覆盖模块维护耗电时，产出清零但输入照扣（Config.EnablePowerInsufficientMaterialLoss 控制）
 - [x] 模块数量限制：通过模块维护耗电间接约束——模块越多维护成本越高，供电不足则吞材料
-- [x] 三级结构差异化：Tier II 新增 UV 级配方电压上限，Tier II/III 放开标准模块等级门控，AHTech 独占模块继续保留 `structureTier` 门控
+- [x] 三级结构差异化：Tier II 新增 UV 级配方电压上限，Tier II/III 放开标准模块等级门控，AHTech 独占模块继续保留 structureTier 门控
 
 ### 阶段三：供货协议合同系统（配方解锁）
 - [x] 设计[供货协议合同]物品（配方等级解锁道具；当前已作为供应商配方解锁条件接入）
@@ -38,8 +37,6 @@
 - [x] 扩展实现四级合同 → 需三级合同 + 更高等级材料
 - [x] 供应商舱口与合同联动解锁配方：Data Access Hatch 中的最高合同等级 + 已安装供应商共同决定可用配方
 - [ ] 八仓可升压，但仅影响配方速度；配方等级由合同决定
-
-
 
 ### 阶段五：锁科技与趣味内容
 - [x] 实现供应商模块列表（已注册 7 个供应商舱口，并提供名称/标语本地化）：
@@ -51,7 +48,6 @@
   - [x] [低通]
   - [x] [二法半导体]
   - [ ] …更多供应商
-
 
 ## 其他未来想法
 - [ ] 添加更多特殊配方到 ElectronicsMarketRecipePool
@@ -67,6 +63,13 @@
   - [ ] 输出仓7：不匹配以上六种类型的物品（兜底输出）
 
 ## 2026-04-15 审查待修
+- [x] 选择 H 位扩容实现方式：已按 `docs/superpowers/plans/2026-04-16-electronics-market-h-slot-expansion.md` 采用子代理派工执行
+- [x] 审阅 `docs/superpowers/specs/2026-04-16-electronics-market-h-slot-expansion-design.md`，确认 H 位扩容设计后进入实现计划
+- [x] 修复 `tools/generate_refined.py` 的楼层对象复用：`generate_full_structure()` 现已为每层生成独立副本，控制器/`H` 位修改不会再扩散到整段裙楼楼层
+- [x] 收紧 `ElectronicsMarketStructureBehaviorTest`：现已校验阶段化数量范围、楼层白名单与 `H` 坐标超集关系，能拦截“数量够但分布失真”的回归
+- [x] 修复赛格大厦结构的舱口位不足：`tools/generate_refined.py` 已调整控制器周边布局并重新生成 `ElectronicsMarketShapes.java`，三阶段结构现已提供足够的 `H` 位
+- [x] 修复 `ElectronicsMarket.checkMachineMM()` 的多阶段试探残留：每次 Stage III/II/I `checkPiece()` 前都会调用 `resetStructureCheckStateForAttempt()` 清空 hatch/模块/临时状态
+- [x] 对齐 `H` 位提示/自动搭建与真实可接受舱口：`H` 位现已统一声明并接受 `MTEHatchDataAccess`、Exotic Energy hatch 与各类模块舱
 - [x] 按 TST 原行为显式化维护耗电池：`ElectronicsMarket.getModulesSubjectToMaintenance()` 只统计 AHTech 原生模块，TST 互通模块继续不参与 AHTech 自定义维护耗电
 - [x] 修复执行核心持久化缺口：为 `ExecutionCoreBase` 补齐在途任务输出缓存、进度与耗电参数的 NBT 持久化；主机关联继续通过结构重检后的 `setup(...)` 恢复
 - [x] 为上述两项补充测试：覆盖 TST 互通模块维护耗电边界，以及执行核心运行状态持久化
@@ -76,6 +79,7 @@
 - [x] 修复 `ElectronicsMarket` 并行货币白嫖：并行上限现已受可支付货币数量约束，`consumeCurrencyFromRecipe()` 也会按真实并行数扣除总成本
 - [x] 修复 `ElectronicsMarket` 单件产物回收率失真：`applyRecoveryRate()` 现已改为“整数部分 + 余数概率补 1 个”，单件非电路板产物不再被无条件保底
 - [x] 为上述两项补充回归测试：`ElectronicsMarketFinancialBehaviorTest` 已覆盖“并行货币乘数 / 货币限制并行 / 单件产物概率回收”三类断言
+- [x] 为赛格大厦结构审查问题补充回归测试：`ElectronicsMarketStructureBehaviorTest` 已覆盖舱口位数量、多阶段重置与 `H` 位提示范围
 
 ## 已完成
 - [x] 合同与供应商系统首版：Lv1-Lv4 合同物品、7 个供应商舱口、Data Access Hatch 合同读取、供应商 metadata 门禁、UI/工业信息显示与合成配方

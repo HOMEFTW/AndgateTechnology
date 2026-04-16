@@ -9,6 +9,7 @@ import gregtech.api.enums.OrePrefixes;
 import gregtech.api.util.GTOreDictUnificator;
 
 public enum CurrencyType {
+
     COPPER(0, "copper", Materials.Copper),
     STEEL(1, "steel", Materials.Steel),
     TITANIUM(2, "titanium", Materials.Titanium),

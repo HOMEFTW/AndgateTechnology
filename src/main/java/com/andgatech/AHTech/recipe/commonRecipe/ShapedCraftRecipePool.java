@@ -21,15 +21,14 @@ public class ShapedCraftRecipePool {
             ModItemList.ContractLv1.get(1),
             recipeBits,
             new Object[] { "FGF", " C ", "PPP", 'F', ItemList.Field_Generator_LV.get(1), 'G',
-                GTOreDictUnificator.get(OrePrefixes.gearGtSmall, Materials.Tin, 1), 'C',
-                ItemList.Circuit_Basic.get(1), 'P', GTOreDictUnificator.get(OrePrefixes.plate, Materials.Copper, 1) });
+                GTOreDictUnificator.get(OrePrefixes.gearGtSmall, Materials.Tin, 1), 'C', ItemList.Circuit_Basic.get(1),
+                'P', GTOreDictUnificator.get(OrePrefixes.plate, Materials.Copper, 1) });
 
         GTModHandler.addCraftingRecipe(
             ModItemList.ContractLv2.get(1),
             recipeBits,
             new Object[] { "FGF", " C ", "PPP", 'F', ItemList.Field_Generator_IV.get(1), 'G',
-                ModItemList.ContractLv1.get(1),
-                'C', ItemList.Circuit_Advanced.get(1), 'P',
+                ModItemList.ContractLv1.get(1), 'C', ItemList.Circuit_Advanced.get(1), 'P',
                 GTOreDictUnificator.get(OrePrefixes.plate, Materials.RedAlloy, 1) });
 
         GTModHandler.addCraftingRecipe(
@@ -75,31 +74,28 @@ public class ShapedCraftRecipePool {
             ModItemList.SupplierChaola.get(1),
             recipeBits,
             new Object[] { "CBC", "DHD", "CBC", 'C', ModItemList.ContractLv2.get(1), 'B',
-                ItemList.Circuit_Advanced.get(1),
-                'D', ItemList.Hatch_DataAccess_LuV.get(1), 'H',
+                ItemList.Circuit_Advanced.get(1), 'D', ItemList.Hatch_DataAccess_LuV.get(1), 'H',
                 GTOreDictUnificator.get(OrePrefixes.plate, Materials.Titanium, 1) });
 
         GTModHandler.addCraftingRecipe(
             ModItemList.SupplierHuangweida.get(1),
             recipeBits,
             new Object[] { "CBC", "DHD", "CBC", 'C', ModItemList.ContractLv2.get(1), 'B',
-                ItemList.Circuit_Advanced.get(1),
-                'D', ItemList.Hatch_DataAccess_LuV.get(1), 'H',
+                ItemList.Circuit_Advanced.get(1), 'D', ItemList.Hatch_DataAccess_LuV.get(1), 'H',
                 GTOreDictUnificator.get(OrePrefixes.plate, Materials.Aluminium, 1) });
 
         GTModHandler.addCraftingRecipe(
             ModItemList.SupplierGaiguang.get(1),
             recipeBits,
             new Object[] { "CBC", "DHD", "CBC", 'C', ModItemList.ContractLv2.get(1), 'B',
-                ItemList.Circuit_Advanced.get(1),
-                'D', ItemList.Hatch_DataAccess_LuV.get(1), 'H',
+                ItemList.Circuit_Advanced.get(1), 'D', ItemList.Hatch_DataAccess_LuV.get(1), 'H',
                 GTOreDictUnificator.get(OrePrefixes.plate, Materials.Glass, 1) });
 
         GTModHandler.addCraftingRecipe(
             ModItemList.SupplierDitong.get(1),
             recipeBits,
-            new Object[] { "CBC", "DHD", "CBC", 'C', ModItemList.ContractLv3.get(1), 'B',
-                ItemList.Circuit_Elite.get(1), 'D', ItemList.Hatch_DataAccess_UV.get(1), 'H',
+            new Object[] { "CBC", "DHD", "CBC", 'C', ModItemList.ContractLv3.get(1), 'B', ItemList.Circuit_Elite.get(1),
+                'D', ItemList.Hatch_DataAccess_UV.get(1), 'H',
                 GTOreDictUnificator.get(OrePrefixes.plate, Materials.TungstenSteel, 1) });
     }
 }

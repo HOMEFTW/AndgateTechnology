@@ -472,12 +472,8 @@ public class MachineLoader {
 
     private static void registerSupplier(int id, ModItemList itemEntry, SupplierId supplierId) {
         itemEntry.set(
-            new SupplierHatch(
-                id,
-                "Supplier." + supplierId.name(),
-                "Supplier " + supplierId.name(),
-                0,
-                supplierId).getStackForm(1L));
+            new SupplierHatch(id, "Supplier." + supplierId.name(), "Supplier " + supplierId.name(), 0, supplierId)
+                .getStackForm(1L));
     }
 
     public static void loadMachinePostInit() {

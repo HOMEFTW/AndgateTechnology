@@ -9,14 +9,55 @@
 - Gradle: 8.14.3, RetroFuturaGradle + GTNH Convention 1.0.50
 
 ## 2026-04-16 最新实现状态
+- `ElectronicsMarket` 已完成赛格大厦三级外观模型重塑（圆角裙楼 + 八边形塔楼）
+  - Stage I: 20 层裙楼（18×18 圆角方形，corner_radius=4）
+  - Stage II: 26 层（裙楼 + 退台1 + 4 层八边形塔楼 + 封顶层）
+  - Stage III: 220 层完整大厦（裙楼 + 弱收分八边形塔楼11/9/9 + 设备带 + 宽冠部 + 双桅杆天线）
+- 形状常量类：`ElectronicsMarketShapes.java`（自动生成，5607 行）
+- 方块映射：`P`(裙楼/tier检测)、`D`(入口/tier检测)、`T`(塔楼)、`V`(竖向装饰, sBlockCasings4:2)、`S`(退台)、`K`(皇冠)、`A`(天线)、`H`(舱口/tier检测 fallback)
+- 2026-04-16 已按赛格大厦参考照片继续收紧 Stage III 外观：
+  - 上段塔身由明显 `11/9/7` 收分改为 `11/9/9` 弱收分，保持更接近真实赛格大厦的修长比例
+  - 第三段退台改为同宽设备带，避免主塔继续明显缩腰
+  - 冠部底座扩宽到 `11` 宽，顶部天线改为双桅杆样式
+- H 位置使用 `ofChain(hatchBuilder.build(), withChannel("casingtier", ofBlocksTiered(...)))` 使未放舱口的位置接受对应等级方壳
+- `ofBlocksTiered` setter 直接赋值（非 Math.max），所有 P/D/H fallback 方块必须同等级
+- `checkMachineMM()` 采用三次尝试模式（III→II→I），每次重置 `structureTier`
+- 控制器偏移：`horizontalOff=9, verticalOff=1, depthOff=0`
 - `ElectronicsMarket` 已按 `docs/superpowers/specs/2026-04-16-tier3-specialization-design.md` 落地三级结构差异化
-- Tier II 现在新增配方电压上限：默认 `Stage2_MaxVoltageTier = 8`（UV）；当配方 `mEUt` 超过 `Config.getStage2_MaxVoltageEUt()` 时返回 `SimpleCheckRecipeResult.ofFailure("voltage_exceeded")`
+- Tier II 新增配方电压上限：默认 `Stage2_MaxVoltageTier = 8`（UV）；当配方 `mEUt` 超过 `Config.getStage2_MaxVoltageEUt()` 时返回 `SimpleCheckRecipeResult.ofFailure("voltage_exceeded")`
 - Tier III 不再受上述 Stage II 电压上限约束，可继续执行更高电压的已解锁配方
 - 模块等级门控已抽象为 `ModularizedMachineBase.getMaxAllowedModuleTier(ModularHatchType)`：
   - `ElectronicsMarket` 在 Tier II/III 下对标准模块（并行/速度/超频/功耗/执行核心）返回 `Integer.MAX_VALUE`
   - AHTech 独占模块仍按 `structureTier >= moduleTier` 处理，保留原有回收率/功能模块门禁
-- 新增 `ElectronicsMarketTierSpecializationBehaviorTest`，覆盖 Tier II/III 电压门禁、标准模块放开、AHTech 独占模块保持门禁，以及 Tier I 兼容性不变
 - 当前验证方式仍为 `./gradlew.bat "-Pelytra.manifest.version=true" test`；本轮定向测试与全量测试均已通过
+- 2026-04-16 结构审查发现的 3 个风险现已修复：
+  - 三阶段形状已重新生成，当前结构提供了足够的 `H` 位满足基础 hatch、`Data Access Hatch` 与模块舱安装需求
+  - `checkMachineMM()` 现已在每次 Stage III → II → I 试探前调用 `resetStructureCheckStateForAttempt()`，不会把失败尝试的 hatch/模块状态残留到后续阶段
+  - `H` 位的提示、自动搭建和真实接收范围现已统一到 `getAllowedHatchClassesForStructureSlots()` / `addAllowedHatchToMachineList(...)`
+- 新增 `ElectronicsMarketStructureBehaviorTest` 覆盖上述三类结构行为回归
+- 2026-04-16 继续审查又发现两项剩余风险：
+  - `tools/generate_refined.py` 在 `generate_full_structure()` 中复用同一个 `layer` 对象；后续 `add_controller_and_hatches()` 的原地修改会污染整段重复楼层，导致三阶段结构当前都实际带有 88 个 `H` 位，而不是仅控制器附近少量 `H` 位
+  - `ElectronicsMarketStructureBehaviorTest` 目前只校验 `H` 位数量下限，没有校验 `H` 位的楼层分布，无法阻止“对象复用导致大量额外 H 位”这一类生成回归
+- 2026-04-16 已完成 H 位扩容设计稿：
+  - 设计文档位于 `docs/superpowers/specs/2026-04-16-electronics-market-h-slot-expansion-design.md`
+  - 方案采用“固定接口骨架 + 分阶段启用”：三阶段位置体系固定，只递增开放数量
+  - `H` 位保持完全通用，不引入硬分区字符
+  - 总体容量策略为“裙楼主容量 + 塔楼进阶扩展”，塔楼采用“少量设备层 + 少量立面带”的混合式分布
+- 2026-04-16 已完成 H 位扩容实现计划：
+  - 计划文档位于 `docs/superpowers/plans/2026-04-16-electronics-market-h-slot-expansion.md`
+  - 实现顺序为：结构红灯测试 -> 生成器去除楼层对象复用并写入阶段化 H 位规则 -> 重新生成 `ElectronicsMarketShapes.java` -> 定向/全量验证与文档同步
+  - 已按该计划完成实现与验证
+- 2026-04-16 H 位扩容已正式落地：
+  - `tools/generate_refined.py` 已移除楼层对象复用，H 位改为通过显式阶段规则写入
+  - `ElectronicsMarketShapes.java` 当前三阶段 H 位分布为：
+    - Stage I：楼层 `{1,2,3,6,7}`，共 20 个 `H`
+    - Stage II：楼层 `{1,2,3,6,7,10,11}`，共 28 个 `H`
+    - Stage III：楼层 `{1,2,3,6,7,10,11,30,31,90,91}`，共 40 个 `H`
+  - Stage II 的 H 坐标集合是 Stage I 的超集，Stage III 是 Stage II 的超集
+  - H 位继续保持完全通用；容量结构按“裙楼主容量 + 塔楼少量设备层与立面带扩展”实现
+  - 验证结果：
+    - `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketStructureBehaviorTest --offline` 通过
+    - `./gradlew.bat "-Pelytra.manifest.version=true" test --offline` 通过
 
 ## 2026-04-15 最新审查状态
 - 已完成对 `ToDOLIST.md`、`log.md`、`context.md` 与核心代码的静态检查，并通过 `./gradlew test` 验证当前测试基线
@@ -40,7 +81,7 @@
 ### 机器
 | 名称 | Meta ID | 类型 | 状态 |
 |------|---------|------|------|
-| 美弱南电子市场 | 35001 | 多方块 | 已实现，已模块化；支持合同等级、供应商舱口与配方 metadata 联动解锁 |
+| 美弱南电子市场 | 35001 | 多方块 | 已实现，已模块化；赛格大厦三级外观（圆角裙楼18×18 + 弱收分八边形塔楼11/9/9 + 宽冠部双桅杆，20/26/220层），支持合同等级、供应商舱口与配方 metadata 联动解锁 |
 
 #### 静态并行控制器
 | 名称 | Meta ID | 并行 |
@@ -141,7 +182,14 @@
 
 基类: `MTEExtendedPowerMultiBlockBase<ElectronicsMarket>`
 
-结构等级: `ofBlocksTiered()`
+结构等级: `ofBlocksTiered()` + `withChannel("casingtier", ...)`
+- 外观: 赛格大厦三级模型（`ElectronicsMarketShapes.java`，自动生成）
+  - Stage I: 20 层裙楼，18×18 圆角方形（corner_radius=4）
+  - Stage II: 26 层（裙楼 + 退台1 + 4 层八边形塔楼 + 封顶层）
+  - Stage III: 220 层完整大厦
+- 方块映射: `P`(裙楼)、`D`(入口装饰)、`T`(塔楼)、`V`(竖向装饰/封顶)、`S`(退台)、`K`(皇冠)、`A`(天线)
+- 结构检测: 三次尝试（III→II→I），每次重置 structureTier
+- 控制器偏移: h=9, v=1, d=0
 - 一阶段: Tungstensteel Casing
 - 二阶段: Stable Titanium Casing
 - 三阶段: Prediction Casing

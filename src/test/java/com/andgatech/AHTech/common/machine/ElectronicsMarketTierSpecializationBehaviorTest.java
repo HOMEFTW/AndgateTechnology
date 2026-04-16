@@ -14,9 +14,9 @@ import com.andgatech.AHTech.common.modularizedMachine.modularHatches.parallelCon
 import com.andgatech.AHTech.config.Config;
 
 import gregtech.api.enums.TierEU;
-import gregtech.api.recipe.metadata.EmptyRecipeMetadataStorage;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
+import gregtech.api.recipe.metadata.EmptyRecipeMetadataStorage;
 import gregtech.api.util.GTRecipe;
 
 class ElectronicsMarketTierSpecializationBehaviorTest {
@@ -56,8 +56,7 @@ class ElectronicsMarketTierSpecializationBehaviorTest {
     @Test
     void tierTwoAllowsHighTierStandardParallelController() {
         TestElectronicsMarket market = new TestElectronicsMarket(ElectronicsMarket.TIER_II);
-        StaticParallelController module =
-            new StaticParallelController("test.parallel.t8", 8, 8, null);
+        StaticParallelController module = new StaticParallelController("test.parallel.t8", 8, 8, null);
 
         assertTrue(module.isCompatibleWithMachine(market));
     }
@@ -89,8 +88,7 @@ class ElectronicsMarketTierSpecializationBehaviorTest {
     @Test
     void tierOneKeepsOriginalStandardModuleTierGate() {
         TestElectronicsMarket market = new TestElectronicsMarket(ElectronicsMarket.TIER_I);
-        StaticParallelController module =
-            new StaticParallelController("test.parallel.t8.stage1", 8, 8, null);
+        StaticParallelController module = new StaticParallelController("test.parallel.t8.stage1", 8, 8, null);
 
         assertFalse(module.isCompatibleWithMachine(market));
     }

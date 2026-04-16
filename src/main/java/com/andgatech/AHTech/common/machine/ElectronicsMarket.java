@@ -2,23 +2,21 @@ package com.andgatech.AHTech.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.withChannel;
-import static gregtech.api.enums.HatchElement.Energy;
-import static gregtech.api.enums.HatchElement.ExoticEnergy;
-import static gregtech.api.enums.HatchElement.InputBus;
-import static gregtech.api.enums.HatchElement.InputHatch;
-import static gregtech.api.enums.HatchElement.OutputBus;
-import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE_ACTIVE;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE_ACTIVE_GLOW;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ASSEMBLY_LINE_GLOW;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -58,23 +56,28 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
-import gregtech.api.interfaces.metatileentity.IMetricsExporter;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
+import gregtech.api.interfaces.metatileentity.IMetricsExporter;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
+import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchDataAccess;
+import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
-import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.metatileentity.implementations.MTEHatchDataAccess;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.ParallelHelper;
+import gregtech.api.util.ExoticEnergyInputHelper;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.ParallelHelper;
 
 /**
  * Electronics Market - a multiblock machine that processes electronics recycling recipes.
@@ -150,7 +153,8 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         lines.add("Suppliers: " + getActiveSupplierCount() + " | Parallel: " + getMaxParallelRecipes());
         lines.add("Speed Bonus: " + formatPercent(getSpeedBonus()));
         lines.add(
-            "Recovery Rate: " + formatPercent(getRecoveryRate()) + " | Perfect Overclock: "
+            "Recovery Rate: " + formatPercent(getRecoveryRate())
+                + " | Perfect Overclock: "
                 + (isEnablePerfectOverclock() ? "ON" : "OFF"));
         lines.add("Modules: " + getInstalledModulesLabel());
         lines.add("Finance: " + getFinancialStatusLine());
@@ -271,8 +275,7 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     public int getMaxAllowedModuleTier(ModularHatchType type) {
         if (getStructureTier() >= TIER_II) {
             return switch (type) {
-                case PARALLEL_CONTROLLER, SPEED_CONTROLLER, OVERCLOCK_CONTROLLER, POWER_CONSUMPTION_CONTROLLER,
-                    EXECUTION_CORE -> Integer.MAX_VALUE;
+                case PARALLEL_CONTROLLER, SPEED_CONTROLLER, OVERCLOCK_CONTROLLER, POWER_CONSUMPTION_CONTROLLER, EXECUTION_CORE -> Integer.MAX_VALUE;
                 default -> getStructureTier();
             };
         }
@@ -327,8 +330,7 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
             @Override
             protected ParallelHelper createParallelHelper(@NotNull GTRecipe recipe) {
                 int affordableParallel = ElectronicsMarket.this.getAffordableCurrencyParallel(recipe, maxParallel);
-                return super.createParallelHelper(recipe)
-                    .setMaxParallel(affordableParallel);
+                return super.createParallelHelper(recipe).setMaxParallel(affordableParallel);
             }
         }.setMaxParallelSupplier(ElectronicsMarket.this::getMaxParallelRecipes);
     }
@@ -526,13 +528,16 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
 
     // region Structure
 
-    private static final String STRUCTURE_PIECE_MAIN = "mainElectronicsMarket";
+    private static final String STRUCTURE_PIECE_STAGE1 = "stage1";
+    private static final String STRUCTURE_PIECE_STAGE2 = "stage2";
+    private static final String STRUCTURE_PIECE_STAGE3 = "stage3";
+    private static final Collection<Class<?>> HATCH_SLOT_CLASSES = createAllowedHatchClassesForStructureSlots();
     private static IStructureDefinition<ElectronicsMarket> STRUCTURE_DEFINITION = null;
 
-    // Structure offsets: controller is at front center of the 5x5x5 box
-    private final int horizontalOffSet = 2;
-    private final int verticalOffSet = 0;
-    private final int depthOffSet = 0;
+    // Structure offsets: controller at Y=1, Z=0, X=9 in the 18-wide coordinate system
+    private static final int horizontalOffSet = 9;
+    private static final int verticalOffSet = 1;
+    private static final int depthOffSet = 0;
 
     /**
      * Determines the tier of a casing block.
@@ -554,13 +559,39 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         return null;
     }
 
+    static Collection<Class<?>> getAllowedHatchClassesForStructureSlots() {
+        return HATCH_SLOT_CLASSES;
+    }
+
+    private static Collection<Class<?>> createAllowedHatchClassesForStructureSlots() {
+        List<Class<?>> classes = new ArrayList<>(
+            Arrays.asList(
+                MTEHatchInputBus.class,
+                MTEHatchOutputBus.class,
+                MTEHatchInput.class,
+                MTEHatchOutput.class,
+                MTEHatchEnergy.class,
+                MTEHatchDataAccess.class,
+                ModularHatchBase.class));
+        classes.addAll(ExoticEnergyInputHelper.getAllClasses());
+        return Collections.unmodifiableList(classes);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Class<? extends IMetaTileEntity>> getAllowedHatchClassesForStructureSlotsTyped() {
+        return (List<Class<? extends IMetaTileEntity>>) (List<?>) new ArrayList<>(HATCH_SLOT_CLASSES);
+    }
+
     @Override
     public IStructureDefinition<ElectronicsMarket> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
             STRUCTURE_DEFINITION = StructureDefinition.<ElectronicsMarket>builder()
-                .addShape(STRUCTURE_PIECE_MAIN, transpose(shape))
+                .addShape(STRUCTURE_PIECE_STAGE1, transpose(ElectronicsMarketShapes.STAGE1_SHAPE))
+                .addShape(STRUCTURE_PIECE_STAGE2, transpose(ElectronicsMarketShapes.STAGE2_SHAPE))
+                .addShape(STRUCTURE_PIECE_STAGE3, transpose(ElectronicsMarketShapes.STAGE3_SHAPE))
+                // Podium casing - tier-determining
                 .addElement(
-                    'C',
+                    'P',
                     withChannel(
                         "casingtier",
                         ofBlocksTiered(
@@ -570,84 +601,80 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                                 Pair.of(GregTechAPI.sBlockCasings4, 1),
                                 Pair.of(GregTechAPI.sBlockCasings8, 10)),
                             TIER_NONE,
-                            (m, t) -> m.structureTier = Math.max(m.structureTier, t),
+                            (m, t) -> m.structureTier = t,
                             m -> m.structureTier)))
+                // Door - same tier logic as podium
+                .addElement(
+                    'D',
+                    withChannel(
+                        "casingtier",
+                        ofBlocksTiered(
+                            ElectronicsMarket::getCasingTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                Pair.of(GregTechAPI.sBlockCasings4, 1),
+                                Pair.of(GregTechAPI.sBlockCasings8, 10)),
+                            TIER_NONE,
+                            (m, t) -> m.structureTier = t,
+                            m -> m.structureTier)))
+                // Tower wall
+                .addElement('T', ofBlock(GregTechAPI.sBlockCasings2, 15))
+                // Vertical decorative lines (meta 2 avoids conflict with Tier II casing at meta 1)
+                .addElement('V', ofBlock(GregTechAPI.sBlockCasings4, 2))
+                // Setback transition
+                .addElement('S', ofBlock(GregTechAPI.sBlockCasings3, 2))
+                // Crown
+                .addElement('K', ofBlock(GregTechAPI.sBlockCasings4, 8))
+                // Antenna
+                .addElement('A', ofBlock(GregTechAPI.sBlockCasings5, 4))
+                // Hatch slots - fallback uses tiered casing so H positions accept matching tier
                 .addElement(
                     'H',
-                    HatchElementBuilder.<ElectronicsMarket>builder()
-                        .atLeast(InputBus, OutputBus, InputHatch, OutputHatch, Energy.or(ExoticEnergy))
-                        .adder(ElectronicsMarket::addToMachineList)
-                        .dot(1)
-                        .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0))
-                        .buildAndChain(GregTechAPI.sBlockCasings2, 0))
-                .addElement('A', ofBlock(GregTechAPI.sBlockCasings2, 0))
+                    ofChain(
+                        HatchElementBuilder.<ElectronicsMarket>builder()
+                            .adder(ElectronicsMarket::addAllowedHatchToMachineList)
+                            .hatchClasses(getAllowedHatchClassesForStructureSlotsTyped())
+                            .dot(1)
+                            .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0))
+                            .build(),
+                        withChannel(
+                            "casingtier",
+                            ofBlocksTiered(
+                                ElectronicsMarket::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                    Pair.of(GregTechAPI.sBlockCasings4, 1),
+                                    Pair.of(GregTechAPI.sBlockCasings8, 10)),
+                                TIER_NONE,
+                                (ElectronicsMarket m, Integer t) -> m.structureTier = t,
+                                (ElectronicsMarket m) -> m.structureTier))))
                 .build();
         }
         return STRUCTURE_DEFINITION;
     }
 
-    /**
-     * Simple placeholder 5x5x5 structure.
-     * Controller ('~') at front center, surrounded by tiered casings ('C'),
-     * hatch slots ('H') on the front face sides, and solid casing ('A') elsewhere.
-     *
-     * Layout (each slice is one Z-layer, front to back):
-     * Layer 0 (front): HHHHH, HCCCH, HC~CH, HCCCH, HHHHH
-     * Layer 1: ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
-     * Layer 2: ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
-     * Layer 3: ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
-     * Layer 4 (back): ACCCA, ACCCA, ACCCA, ACCCA, ACCCA
-     */
-    // spotless:off
-    public static final String[][] shape = new String[][] {
-        { // Layer 0 - Front face with controller
-            "HHHHH",
-            "HCCCH",
-            "HC~CH",
-            "HCCCH",
-            "HHHHH"
-        },
-        { // Layer 1
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA"
-        },
-        { // Layer 2
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA"
-        },
-        { // Layer 3
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA"
-        },
-        { // Layer 4 - Back
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA",
-            "ACCCA"
-        }
-    };
-    // spotless:on
-
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, horizontalOffSet, verticalOffSet, depthOffSet);
+        int tier = (stackSize != null && stackSize.stackSize > 0) ? Math.min(3, Math.max(1, stackSize.stackSize)) : 3;
+        String piece = switch (tier) {
+            case 1 -> STRUCTURE_PIECE_STAGE1;
+            case 2 -> STRUCTURE_PIECE_STAGE2;
+            default -> STRUCTURE_PIECE_STAGE3;
+        };
+        buildPiece(piece, stackSize, hintsOnly, horizontalOffSet, verticalOffSet, depthOffSet);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (this.mMachine) return -1;
+        int tier = (stackSize != null && stackSize.stackSize > 0) ? Math.min(3, Math.max(1, stackSize.stackSize)) : 3;
+        String piece = switch (tier) {
+            case 1 -> STRUCTURE_PIECE_STAGE1;
+            case 2 -> STRUCTURE_PIECE_STAGE2;
+            default -> STRUCTURE_PIECE_STAGE3;
+        };
         return this.survivalBuildPiece(
-            STRUCTURE_PIECE_MAIN,
+            piece,
             stackSize,
             horizontalOffSet,
             verticalOffSet,
@@ -660,22 +687,69 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
 
     @Override
     public boolean checkMachineMM(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+        resetStructureCheckStateForAttempt();
+
+        // Try Stage III (full 220-layer building) first
+        if (checkPiece(STRUCTURE_PIECE_STAGE3, horizontalOffSet, verticalOffSet, depthOffSet)
+            && structureTier >= TIER_I) {
+            return finalizeStructureCheck();
+        }
+
+        // Reset and try Stage II (podium + setback + 4-layer tower + cap, 26 layers)
+        resetStructureCheckStateForAttempt();
+        if (checkPiece(STRUCTURE_PIECE_STAGE2, horizontalOffSet, verticalOffSet, depthOffSet)
+            && structureTier >= TIER_I) {
+            return finalizeStructureCheck();
+        }
+
+        // Reset and try Stage I (podium only, 20 layers)
+        resetStructureCheckStateForAttempt();
+        if (!checkPiece(STRUCTURE_PIECE_STAGE1, horizontalOffSet, verticalOffSet, depthOffSet)
+            || structureTier < TIER_I) {
+            return false;
+        }
+
+        return finalizeStructureCheck();
+    }
+
+    void resetStructureCheckStateForAttempt() {
+        mInputHatches.clear();
+        mOutputHatches.clear();
+        mInputBusses.clear();
+        mOutputBusses.clear();
+        mDualInputHatches.clear();
+        mSmartInputHatches.clear();
+        mEnergyHatches.clear();
+        getExoticEnergyHatches().clear();
+        mDynamoHatches.clear();
+        mMufflerHatches.clear();
+        mMaintenanceHatches.clear();
         mDataAccessHatches.clear();
         activeSuppliers.clear();
         financialHatches.clear();
         contractTier = ContractTier.NONE;
         structureTier = TIER_NONE;
         resetRecipeCurrencyState();
-        boolean sign = checkPiece(STRUCTURE_PIECE_MAIN, horizontalOffSet, verticalOffSet, depthOffSet);
-        if (!sign || structureTier < TIER_I) {
-            return false;
-        }
+        resetModularHatchCollections();
+    }
+
+    private boolean finalizeStructureCheck() {
         readContractFromDataHatches();
         rebuildActiveSuppliers();
         rebuildFinancialHatches();
         autoRefillFinancialHatches();
-        // Stage I parallel is set in checkModularStaticSettings() override
         return true;
+    }
+
+    private boolean addAllowedHatchToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        return addInputBusToMachineList(aTileEntity, aBaseCasingIndex)
+            || addOutputBusToMachineList(aTileEntity, aBaseCasingIndex)
+            || addInputHatchToMachineList(aTileEntity, aBaseCasingIndex)
+            || addOutputHatchToMachineList(aTileEntity, aBaseCasingIndex)
+            || addEnergyInputToMachineList(aTileEntity, aBaseCasingIndex)
+            || addExoticEnergyInputToMachineList(aTileEntity, aBaseCasingIndex)
+            || addDataAccessToMachineList(aTileEntity, aBaseCasingIndex)
+            || addAnyModularHatchToMachineList(aTileEntity, aBaseCasingIndex);
     }
 
     @Override
@@ -863,21 +937,31 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType("Electronics Market")
-            .addInfo("Recycles electronics into raw materials.")
-            .addInfo("Structure tier determines available recipes.")
-            .addInfo("Tier I: Robust Tungstensteel Casing - Basic recipes, 30% recovery rate")
-            .addInfo("Tier II: Stable Titanium Casing - Advanced recipes + modular hatches")
-            .addInfo("Tier III: Prediction Casing - All recipes + modular hatches")
-            .addInfo("Install modular hatches in 'H' slots to boost performance.")
+            .addInfo("SEG Plaza Electronics Recycling Center")
+            .addInfo("Three-tier building structure determines available recipes.")
             .addSeparator()
-            .beginStructureBlock(5, 5, 5, false)
-            .addController("Front center")
-            .addCasingInfoExactly("Tiered Casing", 4, false)
-            .addInputBus("Any casing", 1)
-            .addOutputBus("Any casing", 1)
-            .addInputHatch("Any casing", 1)
-            .addOutputHatch("Any casing", 1)
-            .addEnergyHatch("Any casing", 1)
+            .addInfo("Stage I (Podium): 18x18 rounded base, 20 layers")
+            .addInfo("  - Basic recipes only, 30% recovery, hardcoded parallel")
+            .addInfo("Stage II (Podium + Tower): 26 layers")
+            .addInfo("  - Advanced recipes + modular hatches unlocked")
+            .addInfo("Stage III (Full Building): 220 layers")
+            .addInfo("  - All recipes + full modular hatch support")
+            .addSeparator()
+            .addInfo("Casing tier (P/D blocks) determines structure tier:")
+            .addInfo("  Tier I: Robust Tungstensteel | Tier II: Stable Titanium | Tier III: Prediction")
+            .addInfo("Use programmable builder with stackSize 1/2/3 for each stage.")
+            .addSeparator()
+            .beginStructureBlock(18, 220, 18, false)
+            .addController("Podium front face, Y=1 center")
+            .addInputBus("Any H slot (podium front)", 1)
+            .addOutputBus("Any H slot (podium front)", 1)
+            .addInputHatch("Any H slot (podium front)", 1)
+            .addOutputHatch("Any H slot (podium front)", 1)
+            .addEnergyHatch("Any H slot (podium front)", 1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("GT5U.tooltip.structure.data_access_hatch"),
+                "Any H slot (for contracts)",
+                1)
             .toolTipFinisher("AHTech");
         return tt;
     }
@@ -891,19 +975,18 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         super.addUIWidgets(builder, buildContext);
 
         // Stage display (synced from server)
-        builder
-            .widget(new TextWidget().setStringSupplier(() -> {
-                String tierName = switch (structureTier) {
-                    case TIER_I -> "I";
-                    case TIER_II -> "II";
-                    case TIER_III -> "III";
-                    default -> "?";
-                };
-                return StatCollector.translateToLocalFormatted("AHTech.UI.Stage", tierName);
-            })
-                .setDefaultColor(0x55FF55)
-                .setPos(6, 73)
-                .setSize(80, 10))
+        builder.widget(new TextWidget().setStringSupplier(() -> {
+            String tierName = switch (structureTier) {
+                case TIER_I -> "I";
+                case TIER_II -> "II";
+                case TIER_III -> "III";
+                default -> "?";
+            };
+            return StatCollector.translateToLocalFormatted("AHTech.UI.Stage", tierName);
+        })
+            .setDefaultColor(0x55FF55)
+            .setPos(6, 73)
+            .setSize(80, 10))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> structureTier, val -> structureTier = val));
 
         // Parallel display (synced via cached field)
@@ -926,7 +1009,10 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                     .setDefaultColor(0xFFFF55)
                     .setPos(6, 93)
                     .setSize(80, 10))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getSpeedBonus(), val -> syncedSpeedBonus = (float) (double) val));
+            .widget(
+                new FakeSyncWidget.DoubleSyncer(
+                    () -> (double) getSpeedBonus(),
+                    val -> syncedSpeedBonus = (float) (double) val));
 
         // Recovery rate display (synced via cached field)
         builder
@@ -939,50 +1025,55 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                     .setDefaultColor(0x55FFFF)
                     .setPos(6, 103)
                     .setSize(80, 10))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> (double) getRecoveryRate(), val -> syncedRecoveryRate = (float) (double) val));
+            .widget(
+                new FakeSyncWidget.DoubleSyncer(
+                    () -> (double) getRecoveryRate(),
+                    val -> syncedRecoveryRate = (float) (double) val));
 
         builder
             .widget(
-                new TextWidget().setStringSupplier(
-                    () -> StatCollector.translateToLocalFormatted(
-                        "AHTech.UI.Contract",
-                        StatCollector.translateToLocal(ContractTier.fromTier(syncedContractTier).getTranslationKey())))
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> StatCollector.translateToLocalFormatted(
+                            "AHTech.UI.Contract",
+                            StatCollector.translateToLocal(
+                                ContractTier.fromTier(syncedContractTier)
+                                    .getTranslationKey())))
                     .setDefaultColor(0xAAAAFF)
                     .setPos(6, 113)
                     .setSize(110, 10))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> getContractTierForUi().getTier(), val -> syncedContractTier = val));
+            .widget(
+                new FakeSyncWidget.IntegerSyncer(
+                    () -> getContractTierForUi().getTier(),
+                    val -> syncedContractTier = val));
 
         builder
             .widget(
-                new TextWidget().setStringSupplier(
-                    () -> StatCollector.translateToLocalFormatted("AHTech.UI.Suppliers", syncedActiveSuppliers))
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> StatCollector.translateToLocalFormatted("AHTech.UI.Suppliers", syncedActiveSuppliers))
                     .setDefaultColor(0xFFAA55)
                     .setPos(6, 123)
                     .setSize(110, 10))
             .widget(new FakeSyncWidget.IntegerSyncer(this::getActiveSupplierCount, val -> syncedActiveSuppliers = val));
 
         // Perfect overclock indicator (synced via getter, dynamic color via DynamicTextWidget)
-        builder
-            .widget(
-                TextWidget.dynamicText(() -> {
-                    boolean on = isEnablePerfectOverclock();
-                    return new Text(on
-                        ? StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.On")
-                        : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off"))
-                            .color(on ? 0x55FF55 : 0xFF5555);
-                })
-                    .setPos(6, 133)
-                    .setSize(80, 10));
+        builder.widget(TextWidget.dynamicText(() -> {
+            boolean on = isEnablePerfectOverclock();
+            return new Text(
+                on ? StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.On")
+                    : StatCollector.translateToLocal("AHTech.UI.PerfectOverclock.Off")).color(on ? 0x55FF55 : 0xFF5555);
+        })
+            .setPos(6, 133)
+            .setSize(80, 10));
 
         if (Config.EnableFinancialSystem) {
-            builder
-                .widget(
-                    new TextWidget()
-                        .setStringSupplier(
-                            () -> StatCollector.translateToLocalFormatted("AHTech.UI.Finance", getFinancialStatusTextForUi()))
-                        .setDefaultColor(0xFFD700)
-                        .setPos(6, 143)
-                        .setSize(160, 10));
+            builder.widget(
+                new TextWidget().setStringSupplier(
+                    () -> StatCollector.translateToLocalFormatted("AHTech.UI.Finance", getFinancialStatusTextForUi()))
+                    .setDefaultColor(0xFFD700)
+                    .setPos(6, 143)
+                    .setSize(160, 10));
 
             builder.widget(
                 new FakeSyncWidget.IntegerSyncer(this::getFinancialHatchCount, val -> syncedFinancialHatchCount = val));
@@ -990,7 +1081,9 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                 CurrencyType type = CurrencyType.values()[i];
                 int index = i;
                 builder.widget(
-                    new FakeSyncWidget.IntegerSyncer(() -> getTotalCurrency(type), val -> syncedFinancialCounts[index] = val));
+                    new FakeSyncWidget.IntegerSyncer(
+                        () -> getTotalCurrency(type),
+                        val -> syncedFinancialCounts[index] = val));
             }
         }
     }

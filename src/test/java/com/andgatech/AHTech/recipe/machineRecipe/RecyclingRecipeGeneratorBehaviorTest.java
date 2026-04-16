@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 
 import net.minecraft.item.Item;
@@ -47,13 +47,15 @@ class RecyclingRecipeGeneratorBehaviorTest {
         assertTrue(outputToInputs.isEmpty());
     }
 
-    private static int invokeProcessGTRecipe(GTRecipe recipe, Map<Object, ItemStack[]> outputToInputs) throws Exception {
+    private static int invokeProcessGTRecipe(GTRecipe recipe, Map<Object, ItemStack[]> outputToInputs)
+        throws Exception {
         Method method = RecyclingRecipeGenerator.class.getDeclaredMethod("processGTRecipe", GTRecipe.class, Map.class);
         method.setAccessible(true);
         return (int) method.invoke(null, recipe, outputToInputs);
     }
 
-    private static GTRecipe newRecipe(ItemStack[] inputs, ItemStack[] outputs, FluidStack[] fluidInputs) throws Exception {
+    private static GTRecipe newRecipe(ItemStack[] inputs, ItemStack[] outputs, FluidStack[] fluidInputs)
+        throws Exception {
         GTRecipe recipe = (GTRecipe) getUnsafe().allocateInstance(GTRecipe.class);
         recipe.mInputs = inputs;
         recipe.mOutputs = outputs;

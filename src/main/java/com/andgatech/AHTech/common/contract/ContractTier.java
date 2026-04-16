@@ -1,6 +1,7 @@
 package com.andgatech.AHTech.common.contract;
 
 public enum ContractTier {
+
     NONE(0, "AHTech.Contract.None"),
     LV1(1, "AHTech.Contract.Lv1"),
     LV2(2, "AHTech.Contract.Lv2"),

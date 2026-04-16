@@ -7,7 +7,6 @@ import com.andgatech.AHTech.loader.MachineLoader;
 import com.andgatech.AHTech.loader.MaterialLoader;
 import com.andgatech.AHTech.loader.RecipeLoader;
 
-import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;

@@ -20,7 +20,8 @@ public abstract class StaticPowerConsumptionControllerBase extends PowerConsumpt
 
     @Override
     public void onCheckMachine(ModularizedMachineBase<?> machine) {
-        if (isCompatibleWithMachine(machine) && machine instanceof ISupportPowerConsumptionController supportPowerConsumptionController) {
+        if (isCompatibleWithMachine(machine)
+            && machine instanceof ISupportPowerConsumptionController supportPowerConsumptionController) {
             float p = supportPowerConsumptionController.getStaticPowerConsumptionParameterValue();
             if (p <= 0) {
                 throw new RuntimeException("Error: Power Consumption Multiplier is 0 at machine - " + machine);

@@ -26,12 +26,8 @@ class ContractTierTest {
         ContractItem lv1 = new ContractItem(ContractTier.LV1);
         ContractItem lv3 = new ContractItem(ContractTier.LV3);
 
-        ContractTier highestTier = ContractItem.findHighestTier(
-            Arrays.asList(
-                null,
-                new ItemStack(lv1, 1),
-                new ItemStack(lv3, 1),
-                null));
+        ContractTier highestTier = ContractItem
+            .findHighestTier(Arrays.asList(null, new ItemStack(lv1, 1), new ItemStack(lv3, 1), null));
 
         assertEquals(ContractTier.LV3, highestTier);
     }

@@ -21,7 +21,8 @@ public final class CurrencyRecipePool {
         for (int i = 0; i < types.length; i++) {
             CurrencyType type = types[i];
             if (type.getIngot() == null || type.getCoinStack(1) == null) {
-                AndgateTechnology.LOG.warn("skip currency recipe registration for {} due to missing item mapping", type);
+                AndgateTechnology.LOG
+                    .warn("skip currency recipe registration for {} due to missing item mapping", type);
                 continue;
             }
 

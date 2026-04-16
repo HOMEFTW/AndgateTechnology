@@ -6,8 +6,6 @@ import net.minecraft.util.StatCollector;
 
 import com.andgatech.AHTech.common.modularizedMachine.ModularHatchType;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.ModularHatchBase;
-
-import com.gtnewhorizons.modularui.api.drawable.Text;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
@@ -70,16 +68,14 @@ public class SupplierHatch extends ModularHatchBase {
 
         // 供应商名称（品牌色）
         builder.widget(
-            new TextWidget(StatCollector.translateToLocal(supplierId.getNameKey()))
-                .setDefaultColor(colorRgb)
+            new TextWidget(StatCollector.translateToLocal(supplierId.getNameKey())).setDefaultColor(colorRgb)
                 .setPos(startX, y)
                 .setSize(164, 12));
         y += 16;
 
         // 分隔线
         builder.widget(
-            new TextWidget(EnumChatFormatting.DARK_GRAY + "---------------------------")
-                .setDefaultColor(0x555555)
+            new TextWidget(EnumChatFormatting.DARK_GRAY + "---------------------------").setDefaultColor(0x555555)
                 .setPos(startX, y)
                 .setSize(164, 8));
         y += 12;
@@ -87,18 +83,17 @@ public class SupplierHatch extends ModularHatchBase {
         // 标语（灰色斜体风格）
         String tagline = StatCollector.translateToLocal(supplierId.getTaglineKey());
         builder.widget(
-            new TextWidget(EnumChatFormatting.ITALIC + tagline)
-                .setDefaultColor(0xAAAAAA)
+            new TextWidget(EnumChatFormatting.ITALIC + tagline).setDefaultColor(0xAAAAAA)
                 .setPos(startX, y)
                 .setSize(164, 10));
         y += 18;
 
         // 合同要求
         String contractName = StatCollector.translateToLocal(
-            supplierId.getMinimumContractTier().getTranslationKey());
+            supplierId.getMinimumContractTier()
+                .getTranslationKey());
         builder.widget(
-            new TextWidget(StatCollector.translateToLocalFormatted(
-                "AHTech.Supplier.GUI.ContractLine", contractName))
+            new TextWidget(StatCollector.translateToLocalFormatted("AHTech.Supplier.GUI.ContractLine", contractName))
                 .setDefaultColor(0x55FFFF)
                 .setPos(startX, y)
                 .setSize(164, 10));
@@ -106,8 +101,7 @@ public class SupplierHatch extends ModularHatchBase {
 
     @Override
     public String[] getDescription() {
-        return new String[] {
-            supplierId.getColor() + StatCollector.translateToLocal(supplierId.getNameKey()),
+        return new String[] { supplierId.getColor() + StatCollector.translateToLocal(supplierId.getNameKey()),
             EnumChatFormatting.GRAY + StatCollector.translateToLocal(supplierId.getTaglineKey()) };
     }
 

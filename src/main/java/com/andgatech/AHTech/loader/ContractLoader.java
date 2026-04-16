@@ -21,7 +21,10 @@ public final class ContractLoader {
 
     private static void register(ContractTier contractTier, ModItemList modItemEntry) {
         ContractItem item = new ContractItem(contractTier);
-        GameRegistry.registerItem(item, "contract_" + contractTier.name().toLowerCase());
+        GameRegistry.registerItem(
+            item,
+            "contract_" + contractTier.name()
+                .toLowerCase());
         modItemEntry.set(new ItemStack(item, 1));
     }
 }

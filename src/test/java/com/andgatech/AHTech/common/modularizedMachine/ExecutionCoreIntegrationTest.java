@@ -101,13 +101,16 @@ class ExecutionCoreIntegrationTest {
                 if ("isServerSide".equals(method.getName())) {
                     return true;
                 }
-                if (method.getReturnType().equals(boolean.class)) {
+                if (method.getReturnType()
+                    .equals(boolean.class)) {
                     return false;
                 }
-                if (method.getReturnType().equals(int.class)) {
+                if (method.getReturnType()
+                    .equals(int.class)) {
                     return 0;
                 }
-                if (method.getReturnType().equals(long.class)) {
+                if (method.getReturnType()
+                    .equals(long.class)) {
                     return 0L;
                 }
                 return null;

@@ -7,47 +7,20 @@ import net.minecraft.util.EnumChatFormatting;
 import com.andgatech.AHTech.common.contract.ContractTier;
 
 public enum SupplierId {
-    SHANDONG_DEZHOU(
-        "shandong_dezhou",
-        ContractTier.LV1,
-        "AHTech.Supplier.ShandongDezhou.Name",
-        "AHTech.Supplier.ShandongDezhou.Tagline",
-        EnumChatFormatting.GOLD),
-    YADEPIAN(
-        "yadepian",
-        ContractTier.LV1,
-        "AHTech.Supplier.Yadepian.Name",
-        "AHTech.Supplier.Yadepian.Tagline",
+
+    SHANDONG_DEZHOU("shandong_dezhou", ContractTier.LV1, "AHTech.Supplier.ShandongDezhou.Name",
+        "AHTech.Supplier.ShandongDezhou.Tagline", EnumChatFormatting.GOLD),
+    YADEPIAN("yadepian", ContractTier.LV1, "AHTech.Supplier.Yadepian.Name", "AHTech.Supplier.Yadepian.Tagline",
         EnumChatFormatting.BLUE),
-    ERFA(
-        "erfa",
-        ContractTier.LV1,
-        "AHTech.Supplier.Erfa.Name",
-        "AHTech.Supplier.Erfa.Tagline",
+    ERFA("erfa", ContractTier.LV1, "AHTech.Supplier.Erfa.Name", "AHTech.Supplier.Erfa.Tagline",
         EnumChatFormatting.WHITE),
-    CHAOLA(
-        "chaola",
-        ContractTier.LV2,
-        "AHTech.Supplier.Chaola.Name",
-        "AHTech.Supplier.Chaola.Tagline",
+    CHAOLA("chaola", ContractTier.LV2, "AHTech.Supplier.Chaola.Name", "AHTech.Supplier.Chaola.Tagline",
         EnumChatFormatting.DARK_PURPLE),
-    HUANGWEIDA(
-        "huangweida",
-        ContractTier.LV2,
-        "AHTech.Supplier.Huangweida.Name",
-        "AHTech.Supplier.Huangweida.Tagline",
+    HUANGWEIDA("huangweida", ContractTier.LV2, "AHTech.Supplier.Huangweida.Name", "AHTech.Supplier.Huangweida.Tagline",
         EnumChatFormatting.GREEN),
-    GAIGUANG(
-        "gaiguang",
-        ContractTier.LV2,
-        "AHTech.Supplier.Gaiguang.Name",
-        "AHTech.Supplier.Gaiguang.Tagline",
+    GAIGUANG("gaiguang", ContractTier.LV2, "AHTech.Supplier.Gaiguang.Name", "AHTech.Supplier.Gaiguang.Tagline",
         EnumChatFormatting.YELLOW),
-    DITONG(
-        "ditong",
-        ContractTier.LV3,
-        "AHTech.Supplier.Ditong.Name",
-        "AHTech.Supplier.Ditong.Tagline",
+    DITONG("ditong", ContractTier.LV3, "AHTech.Supplier.Ditong.Name", "AHTech.Supplier.Ditong.Tagline",
         EnumChatFormatting.RED);
 
     private final String id;

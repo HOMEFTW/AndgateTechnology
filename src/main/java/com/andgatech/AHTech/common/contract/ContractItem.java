@@ -19,8 +19,13 @@ public class ContractItem extends Item {
         this.contractTier = contractTier;
         setMaxStackSize(1);
         setCreativeTab(CreativeTabs.tabMisc);
-        setUnlocalizedName("contract." + contractTier.name().toLowerCase());
-        setTextureName(AndgateTechnology.RESOURCE_ROOT_ID + ":contract_" + contractTier.name().toLowerCase());
+        setUnlocalizedName(
+            "contract." + contractTier.name()
+                .toLowerCase());
+        setTextureName(
+            AndgateTechnology.RESOURCE_ROOT_ID + ":contract_"
+                + contractTier.name()
+                    .toLowerCase());
     }
 
     public ContractTier getContractTier() {

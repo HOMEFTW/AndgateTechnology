@@ -1,5 +1,193 @@
 ﻿# 开发日志
 
+## 2026-04-16: 赛格大厦外观进一步贴近照片
+### 已完成
+- 调整 `tools/generate_refined.py` 的赛格大厦轮廓生成规则，使 Stage III 主塔从原先明显的 `11/9/7` 强收分改为更贴近照片的 `11/9/9` 弱收分，上段塔身不再继续缩窄
+- 将第三段过渡层改为同宽设备带，保留高层腰线变化，但避免把塔身做成过度“收腰”的概念楼
+- 扩宽冠部底座到 `11` 宽，并重排冠部阶梯，使顶部更接近“设备层 + 冠部平台”的视觉感受
+- 将顶部天线改为双桅杆样式，重新生成 `ElectronicsMarketShapes.java`，使高层识别特征更接近参考图中的双天线轮廓
+- 为 `ElectronicsMarketStructureBehaviorTest` 新增 Stage III 外观轮廓回归断言，锁定“上段塔身保持较宽截面、冠部底座较宽、顶部双天线”三项视觉目标
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketStructureBehaviorTest --offline` — BUILD SUCCESSFUL
+- 仍有已有预处理警告：`[Translation Missing] Key 'comments' missing in 'zh_CN'`
+
+### 决策记录
+- 本轮只继续收紧赛格大厦照片贴近度，不调整 `ElectronicsMarket` 的结构层数、控制器偏移或 hatch 规则
+- 轮廓约束优先锁定“弱收分 + 宽冠部 + 双天线”三项最显眼特征，而不是追求逐层精确复刻真实建筑
+
+---
+## 2026-04-16: 落地美弱南电子市场 H 位扩容
+### 已完成
+- 完成 `tools/generate_refined.py` 的 H 位扩容实现：去除 `generate_full_structure()` 对楼层模板的对象复用，改为每层独立拷贝
+- 将 H 位生成逻辑重构为显式阶段规则：`build_stage1_hatch_rules()`、`build_stage2_podium_hatch_rules()`、`build_stage3_tower_hatch_rules()`，不再依赖原地副作用污染重复楼层
+- 重新生成 `src/main/java/com/andgatech/AHTech/common/machine/ElectronicsMarketShapes.java`，使三阶段 H 位分布落到固定骨架：
+  - Stage I：`{1,2,3,6,7}`，共 20 个 `H`
+  - Stage II：`{1,2,3,6,7,10,11}`，共 28 个 `H`
+  - Stage III：`{1,2,3,6,7,10,11,30,31,90,91}`，共 40 个 `H`
+- 收紧 `ElectronicsMarketStructureBehaviorTest`：新增阶段化数量范围、楼层白名单和 H 坐标超集断言，先拿到红灯，再验证修复后转绿
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketStructureBehaviorTest --offline` — BUILD SUCCESSFUL
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --offline` — BUILD SUCCESSFUL
+- 仍有已有预处理警告：`[Translation Missing] Key 'comments' missing in 'zh_CN'`
+
+### 决策记录
+- H 位继续保持完全通用，不新增新的 hatch 字符
+- 容量策略按设计稿落地为“裙楼主容量 + 塔楼少量设备层与立面带扩展”
+- 当前环境下 Gradle 联网握手不稳定，验证阶段采用 `--offline` 复用本地缓存完成闭环
+
+---
+
+## 2026-04-16: 完成 H 位扩容实现计划
+### 已完成
+- 基于已确认的 H 位扩容设计稿，完成实现计划文档 `docs/superpowers/plans/2026-04-16-electronics-market-h-slot-expansion.md`
+- 将实现拆分为 4 个任务：结构红灯测试、生成器重构、shape 重生、验证与文档收口
+- 计划中明确了目标文件、测试命令、预期失败/成功结果，以及每个任务的提交边界
+
+### 决策记录
+- 实现顺序采用 `先测试锁规则 -> 再修生成器 -> 再重生 shape -> 最后全量验证`，避免再次出现“数量看起来够，但分布失真”的回归
+- 本轮只写计划，不进入代码实现
+
+---
+
+## 2026-04-16: 完成美弱南电子市场 H 位扩容设计稿
+### 已完成
+- 根据用户确认的方向，完成 `ElectronicsMarket` 大量 `H` 位扩容设计：`裙楼 + 塔楼都分布一些`、`三阶段位置固定只递增开放数量`、`塔楼采用设备层 + 立面带混合式`、`H` 位保持完全通用
+- 新建设计文档 `docs/superpowers/specs/2026-04-16-electronics-market-h-slot-expansion-design.md`
+- 对设计稿做快速自检，确认没有遗留 `TODO` / `TBD` / 模糊占位语句
+
+### 决策记录
+- 采用“固定接口骨架 + 分阶段启用”的结构方案，而不是三阶段各自独立设计 `H` 位分布
+- 后续实现时优先让裙楼承担主容量，塔楼只承担进阶扩展容量，避免把整栋楼做成满墙接口
+
+---
+
+## 2026-04-16: 继续审查赛格大厦结构实现
+### 已完成
+- 继续对照 `StructureLib-1.4.28` 与当前 `ElectronicsMarket` / `generate_refined.py` / `ElectronicsMarketShapes.java` 审查结构生成与校验逻辑
+- 确认一项新的高风险问题：`tools/generate_refined.py` 在 `generate_full_structure()` 中复用同一个 `layer` 对象并重复 `layers.append(layer)`，随后 `add_controller_and_hatches()` 的原地修改会扩散到整段裙楼楼层，导致 `Stage I/II/III` 实际出现 88 个 `H` 位，而不是预期的控制器附近少量 `H` 位
+- 确认一项中风险测试缺口：`ElectronicsMarketStructureBehaviorTest` 只断言 `H` 位数量 `>= 8`，没有约束 `H` 位应只出现在控制器附近的有限楼层，因此无法拦截上述“对象复用导致整段楼层被写脏”的回归
+
+### 验证
+- 使用本地脚本统计 `ElectronicsMarketShapes.java`，确认 `STAGE1_SHAPE` / `STAGE2_SHAPE` / `STAGE3_SHAPE` 的 `H` 总数均为 88，且非零层集中在 Y=1~18
+- 直接检查生成器源码，确认 `generate_full_structure()` 当前使用 `layers.append(layer)` 而非深拷贝
+- 直接检查生成结果，确认 `ElectronicsMarketShapes.java` 中 `HHPDD~DDPH` / `HHHPPPPPHH` 在大量 podium 楼层重复出现
+
+### 决策记录
+- 本轮仅记录继续审查发现，不直接修改实现
+- 后续修复应优先处理生成器对象复用，再把结构回归测试从“最少数量”升级为“数量 + 分布”双重约束
+
+---
+
+## 2026-04-16: 修复赛格大厦结构审查问题
+### 已完成
+- 修复 `ElectronicsMarketShapes.java` 的舱口位不足问题：调整 `tools/generate_refined.py` 的控制器周边布置逻辑，并重新生成三阶段结构，使赛格大厦具备足够的 `H` 位容纳输入/输出/能源/数据访问与模块舱
+- 修复 `ElectronicsMarket.checkMachineMM()` 的多阶段试探残留：新增 `resetStructureCheckStateForAttempt()`，在 Stage III → II → I 每次 `checkPiece()` 前清空标准 hatch 列表、模块集合与相关临时状态
+- 修复 `H` 位提示/自动搭建与真实可接受舱口不一致：将 `H` 位改为使用统一的 `addAllowedHatchToMachineList(...)` 与 `hatchClasses(...)`，显式覆盖 `Data Access Hatch`、模块舱和 Exotic Energy hatch
+- 新增 `ElectronicsMarketStructureBehaviorTest`，覆盖舱口位数量、多阶段结构试探状态重置，以及 `H` 位可接受舱口提示范围三类回归
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketStructureBehaviorTest` — BUILD SUCCESSFUL
+- `./gradlew.bat "-Pelytra.manifest.version=true" test` — BUILD SUCCESSFUL
+- 仍有已有预处理警告：`[Translation Missing] Key 'comments' missing in 'zh_CN'`
+
+### 决策记录
+- `H` 位提示范围按“结构真实接受范围”收口到控制器类集中维护，避免 `HatchElementBuilder.atLeast(...)` 与 `addToMachineList()` 再次分叉
+- 结构形状继续由生成器产出，修复优先落在 `tools/generate_refined.py`，避免手改 `ElectronicsMarketShapes.java` 后再次漂移
+
+---
+
+## 2026-04-16: 对照 StructureLib-1.4.28 审查赛格大厦多方块结构
+### 已完成
+- 对照 `StructureLib-1.4.28` 的 `StructureDefinition`、`StructureUtility.ofBlocksTiered()`、`withChannel()`、`IStructureElementChain` 与 GT5U 的 `HatchElementBuilder` 审查 `ElectronicsMarket` 新三阶段结构实现
+- 确认当前结构改动存在两项高风险问题和一项中风险问题：
+  - `ElectronicsMarketShapes.java` 的 `STAGE1/2/3` 总计只有 2 个 `H` 位，无法同时容纳最基本的输入/输出/能源，更无法再放 `Data Access Hatch`、资金舱或模块舱
+  - `checkMachineMM()` 采用 Stage III → II → I 多次 `checkPiece()` 试探，但没有在每次试探前重置标准 hatch 列表；`checkPiece()` 的副作用会把失败尝试中的舱口残留到下一次尝试
+  - `H` 位的 `HatchElementBuilder.atLeast(...)` 只声明了 Input/Output/Energy 类 hatch，实际却通过 `addToMachineList()` 额外接受 `MTEHatchDataAccess` 和各类模块舱；这会导致提示/自动搭建与真实可接受对象不一致
+
+### 验证
+- 本轮为静态代码审查，未新增运行 Gradle 验证
+- 额外使用本地脚本确认 `STAGE1_SHAPE`、`STAGE2_SHAPE`、`STAGE3_SHAPE` 均只有 2 个 `H` 字符，且控制器 `~` 只有 1 个
+
+### 决策记录
+- 本轮仅记录审查结论，不直接修改实现
+- 后续修复应优先处理“舱口位数量不足”和“多阶段试探残留 hatch 状态”这两项功能性问题
+
+---
+
+## 2026-04-16: 赛格大厦结构重塑 — 圆角裙楼 + 八边形塔楼
+### 已完成
+- 根据 `赛格大厦3.jpg` 和 `赛格大厦4.jpg` 重新设计多方块结构
+- 裙楼：13×13 正方形 → 15×15 圆角方形（corner_radius=3）
+  - 四角切去3格，从正方形变为带圆角的类正方形
+  - Z=0/Z=14 行只有9格宽，Z=1/Z=13 有11格，Z=2/Z=12 有13格
+- 塔楼：正方形截面 → 八边形截面
+  - 第一段：9×9 → 11×11 八边形（corner_cut=2）
+  - 第二段：7×7 → 9×9 八边形
+  - 第三段：5×5 → 7×7 八边形
+- 退台过渡层适配新形状：外层保持圆角/八边形轮廓，内层显示下一级八边形塔楼墙壁
+- 皇冠改为八边形（9/7/5 阶梯式）
+- 更新 `generate_refined.py`：
+  - 新增 `get_margin()`, `in_shape()`, `on_boundary()` 辅助函数
+  - `generate_layer()` 支持 `rounded`/`octagon`/`square` 三种截面类型
+  - `BUILDING_SPEC` 更新为新的尺寸和形状参数
+- 更新 `ElectronicsMarketShapes.java`（由生成器重新生成）
+- 更新 `ElectronicsMarket.java`：
+  - `horizontalOffSet`: 6 → 7（15//2）
+  - tooltip: "13x13" → "15x15 rounded"
+  - `beginStructureBlock`: 13, 220, 13 → 15, 220, 15
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" spotlessApply` — 通过
+- `./gradlew.bat "-Pelytra.manifest.version=true" build` — BUILD SUCCESSFUL
+- 全量测试通过
+
+---
+
+## 2026-04-16: 多方块结构审查修复
+### 已完成
+- 对照更新后的 `gtnh-multiblock-designer` skill 审查 `ElectronicsMarket` 结构实现
+- 修复 `V` 装饰方块与 Tier II 等级方块冲突：`sBlockCasings4:1` → `sBlockCasings4:2`
+- 修复 `HatchElementBuilder` fallback 只接受 Tier I：改为 `ofChain(hatchBuild, withChannel("casingtier", ofBlocksTiered(...)))` 使 H 位置的 fallback 参与等级检测
+- 移除无效的 `Math.max` 累加器：`ofBlocksTiered` 的 setter 只在首次调用时执行，直接赋值即可
+- 补充 tooltip 中缺失的 DataAccess 舱口说明：使用 `addOtherStructurePart` + `GT5U.tooltip.structure.data_access_hatch`
+- 新增 `ofChain` 的 static import
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" build` — BUILD SUCCESSFUL
+- `./gradlew.bat "-Pelytra.manifest.version=true" test` — 全部通过
+
+---
+
+## 2026-04-16: 阶段一完成 — 赛格大厦三级外观模型
+### 已完成
+- 使用 `tools/generate_refined.py` 从 BUILDING_SPEC 生成 220 层完整结构数据
+- 新增 `generate_three_stage_shapes()` 将结构切片为三个等级：
+  - Stage I: 20 层裙楼（13×13 底座）
+  - Stage II: 26 层（裙楼 + 退台1 + 4 层塔楼 + 封顶层）
+  - Stage III: 220 层完整大厦（裙楼 + 三段塔楼 + 退台 + 皇冠 + 天线）
+- 新建 `ElectronicsMarketShapes.java`（自动生成，4282 行），包含三个 `String[][]` 常量
+- 重构 `ElectronicsMarket.java`：
+  - 替换原 5×5×5 方盒形状为三阶段赛格大厦结构
+  - 新增 6 种方块映射：`P`(裙楼)、`T`(塔楼)、`V`(竖向装饰/封顶)、`S`(退台)、`K`(皇冠)、`A`(天线)
+  - `P`/`D` 共享 `withChannel("casingtier", ofBlocksTiered(...))` 确定结构等级
+  - `checkMachineMM()` 改为三次尝试模式（III→II→I），每次重置 `structureTier`
+  - `construct()` / `survivalConstruct()` 按 `stackSize.stackSize` 选择阶段（1→I, 2→II, 3+→III）
+  - 更新 `createTooltip()` 工具提示文案
+- 控制器偏移量：`horizontalOff=6, verticalOff=1, depthOff=0`
+
+### 问题与修复
+- **Java 类型推断失败**: `withChannel` + `ofBlocksTiered` 提取为 `var` 导致 `IStructureElement<Object>` 泛型丢失 → 内联完整调用
+- **Spotless 格式检查失败**: 结构代码超过行宽限制 → 运行 `spotlessApply` 自动修复
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" build` — BUILD SUCCESSFUL
+- `./gradlew.bat "-Pelytra.manifest.version=true" test` — 全部通过
+- Spotless 检查通过
+
+---
+
 ## 2026-04-16: 三级结构差异化落地
 ### 已完成
 - 根据 `docs/superpowers/specs/2026-04-16-tier3-specialization-design.md` 为 `ElectronicsMarket` 落地三级结构差异化：
@@ -534,3 +722,4 @@
 - 包名: `com.andgatech.AHTech`（用户指定）
 - Meta ID 范围: 未分配，待后续添加机器时确定（避开 TST 使用的 18791-19080）
 - Git 用户临时设为 `developer@andgate.tech`，需用户后续更新
+
