@@ -39,6 +39,10 @@ public class Config {
     public static boolean EnableAutoRefillFromInputBus = true;
     // endregion
 
+    // region Power System
+    public static boolean EnablePowerInsufficientMaterialLoss = true;
+    // endregion
+
     // region Machine Enables
     // Add your machine enable/disable configs here:
     // public static boolean Enable_YourMachine = true;
@@ -114,6 +118,12 @@ public class Config {
             "FinancialSystem",
             true,
             "Enable/disable automatic currency refill from input buses.");
+        // Power System
+        EnablePowerInsufficientMaterialLoss = configuration.getBoolean(
+            "EnablePowerInsufficientMaterialLoss",
+            "PowerSystem",
+            true,
+            "When enabled, insufficient power causes recipe inputs to be consumed with zero output.");
 
         if (configuration.hasChanged()) {
             configuration.save();

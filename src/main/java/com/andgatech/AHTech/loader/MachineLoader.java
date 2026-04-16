@@ -1,5 +1,7 @@
 package com.andgatech.AHTech.loader;
 
+import java.util.function.Predicate;
+
 import com.andgatech.AHTech.common.ModItemList;
 import com.andgatech.AHTech.common.machine.ElectronicsMarket;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.FinancialHatch;
@@ -17,6 +19,8 @@ import com.andgatech.AHTech.common.modularizedMachine.modularHatches.speedContro
 import com.andgatech.AHTech.common.supplier.SupplierHatch;
 import com.andgatech.AHTech.common.supplier.SupplierId;
 import com.andgatech.AHTech.config.Config;
+
+import cpw.mods.fml.common.Loader;
 
 /**
  * Register all multiblock machines and single-block machines here.
@@ -36,6 +40,9 @@ public class MachineLoader {
 
     // Meta ID base for modular hatches
     private static final int MODULAR_BASE = 35050;
+    private static final int SUPPLIER_BASE = 35100;
+    private static final int FINANCIAL_ID = 35107;
+    private static final String TST_MOD_ID = "TwistSpaceTechnology";
 
     public static void loadMachines() {
         if (Config.Enable_ElectronicsMarket) {
@@ -47,18 +54,33 @@ public class MachineLoader {
             boolean tstLoaded = isTSTLoaded();
             registerModularHatches(tstLoaded);
         }
+
+        if (shouldRegisterSupplierHatches()) {
+            registerSupplierHatches(SUPPLIER_BASE);
+        }
+        if (shouldRegisterFinancialHatch()) {
+            ModItemList.FinancialHatch
+                .set(new FinancialHatch(FINANCIAL_ID, "FinancialHatch", "Financial Hatch", 0).getStackForm(1L));
+        }
     }
 
     /**
      * Checks if Twist Space Technology (TST) mod is loaded at runtime.
      */
     private static boolean isTSTLoaded() {
-        try {
-            Class.forName("com.Nxer.TwistSpaceTechnology.TwistSpaceTechnology");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+        return isTSTLoaded(Loader::isModLoaded);
+    }
+
+    static boolean isTSTLoaded(Predicate<String> modPresenceChecker) {
+        return modPresenceChecker.test(TST_MOD_ID);
+    }
+
+    static boolean shouldRegisterSupplierHatches() {
+        return Config.Enable_ElectronicsMarket;
+    }
+
+    static boolean shouldRegisterFinancialHatch() {
+        return Config.Enable_ElectronicsMarket && Config.EnableFinancialSystem;
     }
 
     private static void registerModularHatches(boolean tstLoaded) {
@@ -76,11 +98,6 @@ public class MachineLoader {
 
         // AHTech-exclusive modules: always register (TST does not have these)
         id = registerAHTechExclusiveModules(id);
-        id = registerSupplierHatches(id);
-        if (Config.EnableFinancialSystem) {
-            ModItemList.FinancialHatch
-                .set(new FinancialHatch(id++, "FinancialHatch", "Financial Hatch", 0).getStackForm(1L));
-        }
     }
 
     /**

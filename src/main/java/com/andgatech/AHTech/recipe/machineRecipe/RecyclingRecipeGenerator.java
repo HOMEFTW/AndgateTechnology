@@ -36,7 +36,7 @@ import gregtech.api.util.GTUtility;
  * <p>
  * At server startup this class scans all GregTech RecipeMaps and the Forge
  * CraftingManager to build a mapping of output items to their input materials.
- * For each unique output a single recycling recipe is registered in
+ * For each unique output stack a single recycling recipe is registered in
  * {@link AHTechRecipeMaps#ElectronicsMarketRecipes} that takes the output item
  * as input and yields the original input materials as outputs.
  *
@@ -48,21 +48,52 @@ import gregtech.api.util.GTUtility;
 public class RecyclingRecipeGenerator {
 
     // ========================================================================
-    // ItemStackKey -- deduplicates items by (item, damage) ignoring stack size
+    // ItemStackKey -- deduplicates output stacks by (item, damage, stack size)
     // ========================================================================
 
     /**
-     * Lightweight key for deduplicating ItemStacks by item type and damage value.
-     * Stack size is intentionally excluded so that recipes producing different
-     * quantities of the same item are merged into a single recycling recipe.
+     * Lightweight key for deduplicating recycling outputs by item type, damage
+     * value, and stack size. Output quantity matters because the reverse recipe
+     * must consume the same number of items the forward recipe produced.
      */
     private static final class ItemStackKey {
 
         private final Item item;
         private final int damage;
+        private final int stackSize;
         private final int hashCode;
 
         ItemStackKey(ItemStack stack) {
+            this.item = stack.getItem();
+            this.damage = stack.getItemDamage();
+            this.stackSize = stack.stackSize;
+            this.hashCode = Objects.hash(item, damage, stackSize);
+        }
+
+        @Override
+        public int hashCode() {
+            return hashCode;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (!(obj instanceof ItemStackKey other)) return false;
+            return item == other.item && damage == other.damage && stackSize == other.stackSize;
+        }
+    }
+
+    /**
+     * Identity key for consolidating recipe ingredients by item type and damage.
+     * Stack size is intentionally excluded here so equivalent ingredients merge.
+     */
+    private static final class IngredientKey {
+
+        private final Item item;
+        private final int damage;
+        private final int hashCode;
+
+        IngredientKey(ItemStack stack) {
             this.item = stack.getItem();
             this.damage = stack.getItemDamage();
             this.hashCode = Objects.hash(item, damage);
@@ -76,7 +107,7 @@ public class RecyclingRecipeGenerator {
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
-            if (!(obj instanceof ItemStackKey other)) return false;
+            if (!(obj instanceof IngredientKey other)) return false;
             return item == other.item && damage == other.damage;
         }
     }
@@ -117,8 +148,8 @@ public class RecyclingRecipeGenerator {
     /**
      * Iterates all GT RecipeMaps via reflection and builds output-to-inputs
      * mappings from each recipe that has exactly one output item and no fluid
-     * outputs. This ensures we only generate clean recycling recipes where the
-     * original recipe produced a single item from known inputs.
+     * inputs or outputs. This ensures we only generate clean recycling recipes
+     * where the original recipe produced a single item from known item inputs.
      *
      * @return the number of GT recipes successfully scanned
      */
@@ -160,16 +191,30 @@ public class RecyclingRecipeGenerator {
         return count;
     }
 
+    private static void mergeRecipeCandidate(Map<ItemStackKey, ItemStack[]> outputToInputs, ItemStackKey key,
+        ItemStack[] candidateInputs) {
+        ItemStack[] existingInputs = outputToInputs.get(key);
+        if (existingInputs == null || shouldReplaceRecipeCandidate(existingInputs, candidateInputs)) {
+            outputToInputs.put(key, candidateInputs);
+        }
+    }
+
+    static ItemStack createRecyclingInputStack(ItemStack stack) {
+        return new ItemStack(stack.getItem(), stack.stackSize, stack.getItemDamage());
+    }
+
     /**
      * Processes a single GTRecipe: if it has exactly one item output and no fluid
-     * outputs, records the mapping from that output to the recipe's item inputs.
+     * inputs or outputs, records the mapping from that output to the recipe's
+     * item inputs.
      *
      * @return 1 if the recipe was recorded, 0 otherwise
      */
     private static int processGTRecipe(GTRecipe recipe, Map<ItemStackKey, ItemStack[]> outputToInputs) {
         // Must have exactly one item output
         if (recipe.mOutputs == null || recipe.mOutputs.length != 1) return 0;
-        // Skip recipes with fluid outputs -- they are not clean assembly recipes
+        // Skip recipes with fluid IO -- reverse recipes cannot repay fluid costs
+        if (recipe.mFluidInputs != null && recipe.mFluidInputs.length > 0) return 0;
         if (recipe.mFluidOutputs != null && recipe.mFluidOutputs.length > 0) return 0;
 
         ItemStack output = recipe.mOutputs[0];
@@ -188,8 +233,7 @@ public class RecyclingRecipeGenerator {
         if (validInputs.isEmpty()) return 0;
 
         ItemStackKey key = new ItemStackKey(output);
-        // Keep the first mapping found for each output item
-        outputToInputs.putIfAbsent(key, validInputs.toArray(new ItemStack[0]));
+        mergeRecipeCandidate(outputToInputs, key, validInputs.toArray(new ItemStack[0]));
         return 1;
     }
 
@@ -221,7 +265,7 @@ public class RecyclingRecipeGenerator {
                     if (ingredients == null || ingredients.length == 0) continue;
 
                     ItemStackKey key = new ItemStackKey(output);
-                    outputToInputs.putIfAbsent(key, ingredients);
+                    mergeRecipeCandidate(outputToInputs, key, ingredients);
                     count++;
                 } catch (Exception e) {
                     // Skip bad recipes without crashing
@@ -268,6 +312,77 @@ public class RecyclingRecipeGenerator {
         return null;
     }
 
+    static boolean shouldReplaceRecipeCandidate(ItemStack[] existingInputs, ItemStack[] candidateInputs) {
+        int candidateInputCount = countValidInputs(candidateInputs);
+        int existingInputCount = countValidInputs(existingInputs);
+        if (candidateInputCount == 0) {
+            return false;
+        }
+        if (existingInputCount == 0) {
+            return true;
+        }
+        if (candidateInputCount != existingInputCount) {
+            return candidateInputCount < existingInputCount;
+        }
+
+        int candidateTotal = totalInputAmount(candidateInputs);
+        int existingTotal = totalInputAmount(existingInputs);
+        if (candidateTotal != existingTotal) {
+            return candidateTotal < existingTotal;
+        }
+
+        return buildCanonicalRecipeSignature(candidateInputs).compareTo(buildCanonicalRecipeSignature(existingInputs)) < 0;
+    }
+
+    private static int countValidInputs(ItemStack[] inputs) {
+        if (inputs == null) {
+            return 0;
+        }
+        int count = 0;
+        for (ItemStack input : inputs) {
+            if (input != null && input.getItem() != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int totalInputAmount(ItemStack[] inputs) {
+        if (inputs == null) {
+            return 0;
+        }
+        int total = 0;
+        for (ItemStack input : inputs) {
+            if (input != null && input.getItem() != null) {
+                total += input.stackSize;
+            }
+        }
+        return total;
+    }
+
+    private static String buildCanonicalRecipeSignature(ItemStack[] inputs) {
+        if (inputs == null || inputs.length == 0) {
+            return "";
+        }
+
+        List<String> parts = new ArrayList<>();
+        for (ItemStack input : inputs) {
+            if (input != null && input.getItem() != null) {
+                parts.add(buildItemSignature(input));
+            }
+        }
+        parts.sort(String::compareTo);
+        return String.join("|", parts);
+    }
+
+    private static String buildItemSignature(ItemStack stack) {
+        String itemKey = stack.getUnlocalizedName();
+        if (itemKey == null || itemKey.isEmpty()) {
+            itemKey = String.valueOf(Item.getIdFromItem(stack.getItem()));
+        }
+        return itemKey + ":" + stack.getItemDamage() + "x" + stack.stackSize;
+    }
+
     /**
      * Consolidates an array of input ItemStacks by merging duplicate items
      * (same item + damage) and unifying each via the ore dictionary.
@@ -278,14 +393,14 @@ public class RecyclingRecipeGenerator {
     private static ItemStack[] consolidateIngredients(ItemStack[] rawInputs) {
         if (rawInputs == null || rawInputs.length == 0) return null;
 
-        Map<ItemStackKey, ItemStack> merged = new HashMap<>();
+        Map<IngredientKey, ItemStack> merged = new HashMap<>();
         for (ItemStack input : rawInputs) {
             if (input == null || input.getItem() == null) continue;
 
             ItemStack unified = GTOreDictUnificator.get(false, input, true);
             if (unified == null || unified.getItem() == null) continue;
 
-            ItemStackKey key = new ItemStackKey(unified);
+            IngredientKey key = new IngredientKey(unified);
             ItemStack existing = merged.get(key);
             if (existing != null) {
                 existing.stackSize += unified.stackSize;
@@ -310,13 +425,13 @@ public class RecyclingRecipeGenerator {
     private static ItemStack[] extractOreIngredients(List<?> inputs) {
         if (inputs == null || inputs.isEmpty()) return null;
 
-        Map<ItemStackKey, ItemStack> merged = new HashMap<>();
+        Map<IngredientKey, ItemStack> merged = new HashMap<>();
         for (Object entry : inputs) {
             try {
                 ItemStack stack = resolveOreEntry(entry);
                 if (stack == null) continue;
 
-                ItemStackKey key = new ItemStackKey(stack);
+                IngredientKey key = new IngredientKey(stack);
                 ItemStack existing = merged.get(key);
                 if (existing != null) {
                     existing.stackSize += stack.stackSize;
@@ -364,13 +479,13 @@ public class RecyclingRecipeGenerator {
 
     /**
      * Iterates the output-to-inputs map and registers one recycling recipe per
-     * unique output item in {@link AHTechRecipeMaps#ElectronicsMarketRecipes}.
+     * unique output stack in {@link AHTechRecipeMaps#ElectronicsMarketRecipes}.
      *
      * <p>
-     * Each recycling recipe takes the original output item (1x) as input and
-     * produces the original input materials as outputs. The actual recovery rate
-     * is applied at runtime by the machine's ProcessingLogic based on structure
-     * tier and voltage, so recipes declare full (100%) outputs here.
+     * Each recycling recipe takes the original output stack as input and
+     * produces the original input materials as outputs. The actual recovery
+     * rate is applied at runtime by the machine's ProcessingLogic based on
+     * structure tier and voltage, so recipes declare full (100%) outputs here.
      *
      * @return the number of recycling recipes registered
      */
@@ -388,7 +503,7 @@ public class RecyclingRecipeGenerator {
 
                 // Reconstruct the input item (the item to recycle) from the key
                 ItemStackKey key = entry.getKey();
-                ItemStack inputStack = new ItemStack(key.item, 1, key.damage);
+                ItemStack inputStack = createRecyclingInputStack(new ItemStack(key.item, key.stackSize, key.damage));
 
                 if (inputStack.getItem() == null) {
                     skipped++;
@@ -411,7 +526,7 @@ public class RecyclingRecipeGenerator {
 
                 // Register the recycling recipe
                 GTValues.RA.stdBuilder()
-                    .itemInputs(GTUtility.copyAmountUnsafe(1, inputStack))
+                    .itemInputs(GTUtility.copyAmountUnsafe(key.stackSize, inputStack))
                     .itemOutputs(outputs)
                     .specialValue(1)
                     .eut(TierEU.RECIPE_LV)

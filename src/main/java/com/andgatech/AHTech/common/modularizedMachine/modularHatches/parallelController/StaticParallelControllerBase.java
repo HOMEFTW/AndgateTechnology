@@ -18,7 +18,7 @@ public abstract class StaticParallelControllerBase extends ParallelControllerBas
 
     @Override
     public void onCheckMachine(ModularizedMachineBase<?> machine) {
-        if (machine instanceof ISupportParallelController parallelSupporter) {
+        if (isCompatibleWithMachine(machine) && machine instanceof ISupportParallelController parallelSupporter) {
             int p = parallelSupporter.getStaticParallelParameterValue();
             if (p == Integer.MAX_VALUE) return;
             int tp = getParallel();

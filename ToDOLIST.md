@@ -1,7 +1,4 @@
-# 待办清单
-
-## 当前计划
-- [ ] 更新 git 用户信息为正式邮箱/用户名
+﻿# 待办清单
 
 ## 赛格大厦重构（大方向）
 
@@ -13,17 +10,28 @@
 - [ ] 添加默认赛格大厦投影外观
 
 ### 阶段二：模块化系统（二级结构及以上可用）
-- [x] 设计模块化接口：功能模块通过多方块结构检测机制接入，控制器检测模块方块并判断是否适配当前结构阶段
-- [x] 模块适配规则：模块自身有等级要求，低级模块可接入高级结构，高级模块不可接入低级结构
-- [ ] 一级结构限制：仅支持拆解机器（GT线缆拆解等基础配方），不可使用模块化系统
-- [x] 二级结构解锁模块化：可接入二级及以下模块
-- [ ] 三级结构：可接入所有模块
-- [ ] 实现电路拆解机模块（专拆电路板）
-- [ ] 实现元器件工厂模块（低廉生产元器件）
-- [ ] 实现"国产之光"模块（低廉生产电路板）
-- [ ] 输入输出仓跟随模块放置：贴着对应模块即可，不限制固定位置
-- [x] 大厦内部供电系统：统一供电到大厦，模块从大厦取电，供电不足吞材料
-- [ ] 模块数量不限，仅受供电上限约束
+
+#### 已完成
+- [x] 设计模块化接口：接口/基类/舱口三层架构完整（IModularizedMachine + 8 子接口、ModularizedMachineBase → ModularizedMachineSupportAllModuleBase、ModularHatchBase），共注册 58 个模块（标准 46 + AHTech 独占 12）
+- [x] 模块化系统基础运行：模块可安装、效果可应用、TST 互通正常
+- [x] 模块适配规则（等级门控）：全部 9 类模块的 `onCheckMachine()` / `onCheckProcessing()` 均调用 `isCompatibleWithMachine()`，高等级模块安装到低等级结构上静默不生效
+- [x] 一级结构限制：Stage I 通过 `checkModularStaticSettings()` 覆写显式跳过模块应用，配方门禁 + 模块禁装双重限制
+  - [x] 配方门禁：Stage I 只能执行 `specialValue == 0` 的线缆拆解配方
+  - [x] 模块禁装：Stage I 不应用模块效果（硬编码 parallel=3，回收率=30%）
+- [x] 二级结构解锁模块化：通过 `checkModularStaticSettings()` 覆写实现显式分支，Stage II/III 走 `super` 正常应用模块
+  - [x] 配方解锁：`specialValue == 1` 的回收配方和 `specialValue == 2` 的高级配方在 Stage II 被放行
+  - [x] 回收率切换：Stage I 固定 30%，Stage II/III 改为模块驱动
+  - [x] 显式模块化开关：`checkModularStaticSettings()` 按 structureTier 分支处理
+- [x] 供电系统：模块维护耗电 + 供电不足吞材料
+  - [x] 基础供电：能源仓放置于 'H' 位置，支持 PowerConsumption 模块调节耗能
+  - [x] 无线 EU：高级/完美执行核心使用 `WirelessNetworkManager`
+  - [x] 模块维护耗电：`ModularHatchBase.getMaintenanceEUt()` 按 tier 缩放，tier=0 无成本
+  - [x] 供电不足吞材料：存储 EU 不足以覆盖模块维护耗电时，产出清零但输入照扣（`Config.EnablePowerInsufficientMaterialLoss` 控制）
+- [x] 模块数量限制：通过模块维护耗电间接约束——模块越多维护成本越高，供电不足则吞材料
+
+#### 未开始
+- [ ] 三级结构特殊处理：当前 Stage III 与 Stage II 代码逻辑完全等同，无差异化处理
+- [ ] 输入输出仓跟随模块放置：所有仓室固定在 Layer 0 的 16 个 'H' 位置，不跟随模块位置变化
 
 ### 阶段三：供货协议合同系统（配方解锁）
 - [x] 设计[供货协议合同]物品（配方等级解锁道具；当前已作为供应商配方解锁条件接入）
@@ -48,9 +56,6 @@
   - [x] [二法半导体]
   - [ ] …更多供应商
 
-### 阶段六：信息面板与集成
-- [ ] 提供工业信息屏接口，显示：已链接模块、供电状况、资金使用状况等数据
-- [ ] 支持大厦内部搭建 AE 或自动化系统（输入输出仓自由放置）
 
 ## 其他未来想法
 - [ ] 添加更多特殊配方到 ElectronicsMarketRecipePool
@@ -64,6 +69,17 @@
   - [ ] 输出仓5：含杂矿石粉（OrePrefixes.dustImpure）
   - [ ] 输出仓6：矿石粉（OrePrefixes.dust）
   - [ ] 输出仓7：不匹配以上六种类型的物品（兜底输出）
+
+## 2026-04-15 审查待修
+- [x] 按 TST 原行为显式化维护耗电池：`ElectronicsMarket.getModulesSubjectToMaintenance()` 只统计 AHTech 原生模块，TST 互通模块继续不参与 AHTech 自定义维护耗电
+- [x] 修复执行核心持久化缺口：为 `ExecutionCoreBase` 补齐在途任务输出缓存、进度与耗电参数的 NBT 持久化；主机关联继续通过结构重检后的 `setup(...)` 恢复
+- [x] 为上述两项补充测试：覆盖 TST 互通模块维护耗电边界，以及执行核心运行状态持久化
+- [x] 修复 `RecyclingRecipeGenerator` 的多产物逆向失真：输出候选去重现已包含 `stackSize`，`buildRecyclingRecipes()` 会按正向输出数量注册逆向输入
+- [x] 修复 `RecyclingRecipeGenerator` 的流体输入遗漏：`processGTRecipe()` 现已同时排除 `mFluidInputs` 与 `mFluidOutputs`
+- [x] 为自动回收配方补充回归测试：新增 `RecyclingRecipeGeneratorBehaviorTest`，覆盖“同物品不同输出数量”与“GT 配方含流体输入”两类场景
+- [x] 修复 `ElectronicsMarket` 并行货币白嫖：并行上限现已受可支付货币数量约束，`consumeCurrencyFromRecipe()` 也会按真实并行数扣除总成本
+- [x] 修复 `ElectronicsMarket` 单件产物回收率失真：`applyRecoveryRate()` 现已改为“整数部分 + 余数概率补 1 个”，单件非电路板产物不再被无条件保底
+- [x] 为上述两项补充回归测试：`ElectronicsMarketFinancialBehaviorTest` 已覆盖“并行货币乘数 / 货币限制并行 / 单件产物概率回收”三类断言
 
 ## 已完成
 - [x] 合同与供应商系统首版：Lv1-Lv4 合同物品、7 个供应商舱口、Data Access Hatch 合同读取、供应商 metadata 门禁、UI/工业信息显示与合成配方
@@ -92,7 +108,14 @@
 ## 2026-04-15 更新
 - [x] 资金系统首版实现：6 级货币、FinancialHatch、资金 metadata、ElectronicsMarket 资金校验与扣款
 - [x] 重写 `src/main/resources/assets/andgatetechnology/lang/zh_CN.lang`，修复旧文件乱码、多 key 串行与中文本地化缺失问题
+- [x] 修复 `ElectronicsMarket` 审查回归问题：工业信息屏恢复固定 8 行输出、模块维护耗电边界判定改为“相等即充足”、配方校验前触发资金舱自动补币
+- [x] 修复配置耦合与回收配方确定性问题：供应商/资金加载不再被 `EnableModularizedMachineSystem` 隐式禁用、TST 检测改为 `Loader.isModLoaded`、自动回收配方改为稳定候选选择
+- [x] 重新打通测试验证通道：在当前环境下使用 `./gradlew.bat "-Pelytra.manifest.version=true" test` 强制 Elytra conventions 读取本地 manifest 缓存，定向与全量测试均已恢复可用
 - [ ] 为更多 `ElectronicsMarket` 配方逐步补充 `CURRENCY_TYPE` / `CURRENCY_COST`
 - [ ] 视需要补充“资金不足”专用提示文案或自定义 `CheckRecipeResult`
 - [ ] 如需彻底消除语言预处理阶段的 `comments` 警告，后续可单独检查 `addon.gradle` 的 lang 解析逻辑
 - [ ] 如果后续继续维护本地化，统一使用 UTF-8，并在命令行检查时显式指定 `-Encoding UTF8`
+## 2026-04-15 审查补充
+- [x] 继续审查模块化系统，确认 ModularizedMachineBase 仍有旧的 TST 检测路径，且域内执行核心尚未接入主机生产逻辑
+- [x] 修复 ModularizedMachineBase.isTSTLoaded()，将模块化基类的 TST 检测与 MachineLoader 统一到 Loader.isModLoaded("TwistSpaceTechnology")
+- [x] 补全执行核心的主机集成：分配配方、设置 hasBeenSetup、推进进度、回收输出送回主机

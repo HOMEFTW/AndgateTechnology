@@ -18,7 +18,7 @@ public abstract class DynamicSpeedControllerBase extends SpeedControllerBase imp
 
     @Override
     public void onCheckProcessing(ModularizedMachineBase<?> machine) {
-        if (machine instanceof ISupportSpeedController speedSupporter) {
+        if (isCompatibleWithMachine(machine) && machine instanceof ISupportSpeedController speedSupporter) {
             float s = speedSupporter.getDynamicSpeedParameterValue();
             if (s <= 0) {
                 throw new RuntimeException("Error: Speed Bonus is 0 at machine - " + machine);

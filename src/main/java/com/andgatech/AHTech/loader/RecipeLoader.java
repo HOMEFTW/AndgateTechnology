@@ -12,14 +12,25 @@ import com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGenerator;
  */
 public class RecipeLoader {
 
+    static boolean shouldLoadSupplierRecipes() {
+        return Config.Enable_ElectronicsMarket;
+    }
+
+    static boolean shouldLoadCurrencyRecipes() {
+        return Config.Enable_ElectronicsMarket && Config.EnableFinancialSystem;
+    }
+
     public static void loadRecipes() {
         // Load all recipe pools here in the correct order.
-        ShapedCraftRecipePool.loadRecipes();
+        ShapedCraftRecipePool.loadContractRecipes();
+        if (shouldLoadSupplierRecipes()) {
+            ShapedCraftRecipePool.loadSupplierRecipes();
+        }
 
         if (Config.Enable_ElectronicsMarket) {
             ElectronicsMarketRecipePool.loadRecipes();
         }
-        if (Config.EnableFinancialSystem) {
+        if (shouldLoadCurrencyRecipes()) {
             CurrencyRecipePool.loadRecipes();
         }
     }

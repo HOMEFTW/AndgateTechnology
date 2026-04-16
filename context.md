@@ -1,4 +1,4 @@
-# 项目上下文
+﻿# 项目上下文
 
 ## 基本信息
 - Mod 名称: Andgate Technology
@@ -7,6 +7,23 @@
 - 包名: com.andgatech.AHTech
 - 目标环境: MC 1.7.10 + Forge 10.13.4.1614 + GTNH 2.8.4
 - Gradle: 8.14.3, RetroFuturaGradle + GTNH Convention 1.0.50
+
+## 2026-04-15 最新审查状态
+- 已完成对 `ToDOLIST.md`、`log.md`、`context.md` 与核心代码的静态检查，并通过 `./gradlew test` 验证当前测试基线
+- 这两项审查问题现已处理：
+  - `ElectronicsMarket` 通过 `getModulesSubjectToMaintenance()` 显式限定维护耗电池，仅统计 AHTech 原生模块；TST 互通模块继续沿用 TST 原行为，不参与这层自定义维护耗电
+  - `ExecutionCoreBase` 已补齐输出物品、输出流体、进度与耗电参数的 NBT 持久化，并抽出 `saveExecutionState(...)` / `loadExecutionState(...)` 便于复用与测试
+- 新增测试已覆盖上述行为；现有测试同时覆盖 loader 配置、`ElectronicsMarket` 信息/资金行为、执行核心接线闭环、执行核心状态持久化、回收配方确定性，以及自动回收配方的多产物/流体输入边界
+- `RecyclingRecipeGenerator` 的两项审查问题现已处理：
+  - 输出候选去重已改为包含 `(item, damage, stackSize)`，`buildRecyclingRecipes()` 会按正向输出数量生成对应的逆向输入，不再把多产物配方压缩成“1 个成品换整套原料”
+  - `processGTRecipe()` 现已同时排除 `mFluidInputs` 与 `mFluidOutputs`，不再为带流体成本的 GT 配方生成错误回收配方
+- 本轮 Gradle 级验证被外部依赖阻塞：`com.gtnewhorizons.gtnhconvention` 在配置阶段从 GitHub 拉取 manifest 失败，报 `Failed to load the manifest from Github` / `java.net.ConnectException`
+- `ElectronicsMarket` 新近补齐两项行为修复：
+  - 货币系统现在同时约束“可执行并行数”和“最终扣款总额”：匿名 `ProcessingLogic` 会在 `createParallelHelper(...)` 中按可支付货币数压低可执行并行，`consumeCurrencyFromRecipe()` 再按真实并行数扣除总成本
+  - 回收率现在使用“整数部分 + 概率补余数”的方式结算，回收为 0 的非电路板产物会被清空；单件产物不再因 `Math.max(1, ...)` 被强制 100% 回收
+- `ElectronicsMarketFinancialBehaviorTest` 已扩展覆盖：并行货币总价缩放、货币限制并行上限、单件产物在命中/未命中概率时的回收结果
+- 当前测试验证已恢复可用：在本环境下需要通过 `./gradlew.bat "-Pelytra.manifest.version=true" test` 强制 Elytra conventions 使用项目内 `build/elytra_conventions/2.8.4.json` 缓存，否则插件会在配置阶段尝试联网拉取 manifest
+- 在上述参数下，`ElectronicsMarketFinancialBehaviorTest`、`RecyclingRecipeGeneratorBehaviorTest` 以及全量 `test` 均已重新验证通过
 
 ## 已实现内容
 
@@ -135,7 +152,7 @@ UI:
 工业信息屏集成:
 - `getInfoData()`: 为标准 GT 传感卡提供稳定的 8 行输出
 - `reportMetrics()`: 为高级传感卡 / Metrics Transmitter / 工业信息屏提供稳定输出
-- 导出字段: 机器状态、阶段、并行、速度加成、回收率、完美超频、已安装功能模块、合同等级、供应商数量
+- 导出字段: 机器状态、阶段/合同、供应商/并行、速度加成、回收率/完美超频、已安装功能模块、资金摘要
 
 ### 物品
 | 名称 | 注册 | 说明 |
@@ -207,7 +224,7 @@ _(暂无)_
 
 ## 架构说明
 - 生命周期: `preInit → 配置 + 材料`，`init → 机器`，`completeInit → 配方`，`serverStarted → 回收配方`
-- 合同在 `preInit` 由 `ContractLoader.loadContracts()` 注册；供应商舱口在 `init` 随模块舱口一起注册
+- 合同在 `preInit` 由 `ContractLoader.loadContracts()` 注册；供应商舱口在 `init` 只要 `Enable_ElectronicsMarket` 开启就注册，不再依赖 `EnableModularizedMachineSystem`
 - I18n: `//#tr key value` 注释通过 `addon.gradle` 自动生成语言文件
 - Mixin 包路径: `com.andgatech.AHTech.mixin`
 - 资源命名空间: `assets/andgatetechnology/`
@@ -216,6 +233,7 @@ _(暂无)_
 - 项目记录文档（`log.md`、`context.md`、`ToDOLIST.md`）现按“中文优先、技术标识保留原文”的规则维护
 - `ElectronicsMarket` 会从 `MTEHatchDataAccess` 读取其中物品，提取最高 `ContractTier` 作为当前合同等级
 - 供应商配方通过 `AHTechRecipeMetadata.SUPPLIER_ID` 标记，机器在原有 `specialValue` 校验之后追加供应商门禁
+- 货币物品与压币配方只在 `Enable_ElectronicsMarket && EnableFinancialSystem` 时加载，避免出现“有货币/配方但无资金舱”的死状态
 
 ## 架构说明：模块化系统
 - 基类层次: `ModularizedMachineSupportAllModuleBase<T> extends ModularizedMachineBase<T> extends MTEExtendedPowerMultiBlockBase<T>`
@@ -223,26 +241,52 @@ _(暂无)_
 - `ModularHatchType.ALL` 视为通配类型，支持 `ModularizedMachineSupportAllModuleBase` 正确识别新增的 `SUPPLIER` 舱口
 - 静态模块: 在 `checkMachine()` 期间通过 `onCheckMachine()` 应用
 - 动态模块: 在 `checkProcessing()` 期间通过 `onCheckProcessing()` 应用（预留给未来）
-- 一阶段: 固定 30% 回收率、无模块、仅允许硬编码基础配方
+- 一阶段: 固定 30% 回收率、硬编码 4 并行、不应用模块化系统（`checkModularStaticSettings()` 覆写跳过模块应用）、仅允许硬编码基础配方
 - 二阶段及以上: 回收率与性能由已安装模块决定；功能模块决定可用配方类别
+- 所有模块（包括并行/速度/超频/功耗/执行核心）均在 `onCheckMachine()` / `onCheckProcessing()` 中通过 `isCompatibleWithMachine()` 检查等级兼容性；高等级模块安装到低等级结构上静默不生效
 - 配方分类: `specialValue(0)=硬编码`，`specialValue(1)=通用拆解`，`specialValue(2)=需要二阶段及以上`
 - 供应商模块属于独立的模块类型 `ModularHatchType.SUPPLIER`，激活列表受合同等级限制
+- 供应商舱口与 `FinancialHatch` 的注册不再依赖标准模块开关；即使关闭 `EnableModularizedMachineSystem`，只要对应功能开启，它们仍保持可用
 - 回收率在运行时应用到输出物品；电路板始终 100% 回收
 - TST 模块互通: 当 TST 已安装时，AHTech 不再注册重复的标准模块（并行/速度/超频/功耗/执行核心）
 - AHTech 多方块结构可识别 TST 的模块舱口并应用其效果
-- 互通通过编译时存根类实现，运行时通过 `Class.forName()` 检测 TST
+- 互通通过编译时存根类实现，运行时通过 `Loader.isModLoaded("TwistSpaceTechnology")` 检测 TST，避免被本地存根类误判
 - AHTech 专属模块（回收率、功能模块）始终注册，不受 TST 影响
 - 工业信息屏输出刻意保持固定顺序，避免高级传感卡的按行过滤在机器重启或更换模块后失效
+- 自动回收配方生成对同一输出采用稳定候选规则：优先更少输入数，其次更少总输入量，最后按规范化签名字典序打破平手
+
+## 2026-04-15 阶段二补全
+- 模块等级门控已全部生效：所有 9 类模块的 `onCheckMachine()` / `onCheckProcessing()` 均调用 `isCompatibleWithMachine()`
+- Stage I 通过 `ElectronicsMarket.checkModularStaticSettings()` 覆写显式跳过模块应用，仅使用硬编码参数
+- 模块维护耗电：`ModularHatchBase.getMaintenanceEUt()` 按 tier 缩放（T7=1024, T8=2048...），tier=0 无成本
+- 供电不足吞材料：`ElectronicsMarket.checkProcessingMM()` 在配方成功后检查存储 EU 是否覆盖模块维护耗电；存储 EU 与维护耗电相等时视为充足，不足时产出清零
+- 配置项 `Config.EnablePowerInsufficientMaterialLoss` 控制吞材料开关（默认开启）
 
 ## 2026-04-15 最新补充
-- `ElectronicsMarket` 现已支持资金系统：扫描 `FinancialHatch`、汇总余额、校验配方币种/消耗、成功处理后扣款，并在信息输出中展示资金摘要
+- `ElectronicsMarket` 现已支持资金系统：扫描 `FinancialHatch`、汇总余额、在配方资金校验前触发自动补币、校验配方币种/消耗、成功处理后扣款，并在信息输出中展示资金摘要
 - 已存在的资金系统核心文件：
   - `src/main/java/com/andgatech/AHTech/common/currency/CurrencyType.java`
   - `src/main/java/com/andgatech/AHTech/common/currency/CurrencyItem.java`
   - `src/main/java/com/andgatech/AHTech/common/modularizedMachine/modularHatches/FinancialHatch.java`
   - `src/main/java/com/andgatech/AHTech/recipe/machineRecipe/CurrencyRecipePool.java`
+- 本轮回归修复新增 `prepareFinancialStateForRecipeCheck()` 与 `hasEnoughStoredPower(...)`，分别用于配方前自动补币与模块维护耗电边界判定
 - `src/main/resources/assets/andgatetechnology/lang/zh_CN.lang` 已整体重写为正常 UTF-8 中文文件；在 PowerShell 中检查该文件时应优先使用 `Get-Content -Encoding UTF8`
 - 资金系统相关中文 key 已覆盖 `ElectronicsMarket` 资金状态、`FinancialHatch` 描述/自动补币以及 6 种货币名称
 - 最近一次验证结果：
+  - `./gradlew test --tests com.andgatech.AHTech.loader.LoaderConfigBehaviorTest --tests com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGeneratorDeterminismTest` 通过
+  - `./gradlew test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketInformationTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketFinancialBehaviorTest` 通过
   - `./gradlew compileJava` 通过
   - `./gradlew test` 通过
+
+## 2026-04-15 审查记录（已修复）
+- 当时发现 ModularizedMachineBase 仍使用 Class.forName("com.Nxer.TwistSpaceTechnology.TwistSpaceTechnology") 进行 TST 加载判断，现已改为与 MachineLoader 一致的 Loader.isModLoaded(...)
+- 当时发现 ExecutionCoreBase 仅定义了状态字段和 EXECUTION_CORE hatch 类型；现已补齐 hasBeenSetup 绑定路径与主机关联
+- 当时发现 ModularizedMachineSupportAllModuleBase.checkProcessingMM() 只走 GT processingLogic / checkRecipe；现已在 ModularizedMachineBase.checkProcessing() 成功后补上向执行核心的任务转交
+## 2026-04-15 模块化执行核心修复
+- ModularizedMachineBase.isTSTLoaded() 已改为委托 Loader.isModLoaded("TwistSpaceTechnology")，并提供 isTSTLoaded(Predicate<String>) 便于测试
+- ExecutionCoreBase 现已具备主机绑定能力：setup(ModularizedMachineBase<?>) 会在结构检查阶段绑定主机，完成工作后通过主机侧 mergeOutputItems(...) / mergeOutputFluids(...) 回流产物
+- ModularizedMachineBase.checkProcessing() 在已有 processingLogic 成功匹配配方后，会将当前配方结果优先转交给空闲执行核心；若执行核心接管成功，主机自身进度与输出字段会被清空
+- 使用主机供电的执行核心现在会在 ModularizedMachineBase.onPostTick() 中按 tick 消耗主机能源；掉电时会统一关闭执行核心并触发 POWER_LOSS
+- 新增测试：
+  - src/test/java/com/andgatech/AHTech/common/modularizedMachine/ExecutionCoreIntegrationTest.java
+  - src/test/java/com/andgatech/AHTech/loader/LoaderConfigBehaviorTest.java 新增模块化基类的 TST 检测覆盖

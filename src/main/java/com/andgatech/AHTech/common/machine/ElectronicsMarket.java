@@ -36,6 +36,7 @@ import com.andgatech.AHTech.common.modularizedMachine.ModularHatchType;
 import com.andgatech.AHTech.common.modularizedMachine.ModularizedMachineSupportAllModuleBase;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.FinancialHatch;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IModularHatch;
+import com.andgatech.AHTech.common.modularizedMachine.modularHatches.ModularHatchBase;
 import com.andgatech.AHTech.common.supplier.SupplierHatch;
 import com.andgatech.AHTech.common.supplier.SupplierId;
 import com.andgatech.AHTech.config.Config;
@@ -64,10 +65,12 @@ import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDataAccess;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.ParallelHelper;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.HatchElementBuilder;
@@ -140,16 +143,15 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     }
 
     private List<String> buildInformationLines() {
-        List<String> lines = new ArrayList<>(11);
+        List<String> lines = new ArrayList<>(8);
         lines.add("Electronics Market");
         lines.add("Status: " + getMachineStatusLine());
-        lines.add("Stage: " + getStructureTierLabel());
-        lines.add("Contract: " + getContractTierLabel());
-        lines.add("Suppliers: " + getActiveSupplierCount());
-        lines.add("Parallel: " + getMaxParallelRecipes());
+        lines.add("Stage: " + getStructureTierLabel() + " | Contract: " + getContractTierLabel());
+        lines.add("Suppliers: " + getActiveSupplierCount() + " | Parallel: " + getMaxParallelRecipes());
         lines.add("Speed Bonus: " + formatPercent(getSpeedBonus()));
-        lines.add("Recovery Rate: " + formatPercent(getRecoveryRate()));
-        lines.add("Perfect Overclock: " + (isEnablePerfectOverclock() ? "ON" : "OFF"));
+        lines.add(
+            "Recovery Rate: " + formatPercent(getRecoveryRate()) + " | Perfect Overclock: "
+                + (isEnablePerfectOverclock() ? "ON" : "OFF"));
         lines.add("Modules: " + getInstalledModulesLabel());
         lines.add("Finance: " + getFinancialStatusLine());
         return lines;
@@ -265,6 +267,22 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         return true; // Allow multiple hatches of the same type to stack
     }
 
+    /**
+     * Stage I: skip module application, use hardcoded parameters only.
+     * Stage II/III: apply module effects normally via super.
+     */
+    @Override
+    public void checkModularStaticSettings() {
+        if (getStructureTier() == TIER_I) {
+            // Stage I does not use the modular system
+            resetModularStaticSettings();
+            setStaticParallelParameter(3); // hardcoded 4 parallel (3 + 1 base)
+            return;
+        }
+        // Stage II/III: apply module effects normally
+        super.checkModularStaticSettings();
+    }
+
     // endregion
 
     // region Processing Logic
@@ -292,6 +310,14 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
                 setOverclock(ElectronicsMarket.this.isEnablePerfectOverclock() ? 4 : 2, 4);
                 return super.process();
             }
+
+            @NotNull
+            @Override
+            protected ParallelHelper createParallelHelper(@NotNull GTRecipe recipe) {
+                int affordableParallel = ElectronicsMarket.this.getAffordableCurrencyParallel(recipe, maxParallel);
+                return super.createParallelHelper(recipe)
+                    .setMaxParallel(affordableParallel);
+            }
         }.setMaxParallelSupplier(ElectronicsMarket.this::getMaxParallelRecipes);
     }
 
@@ -304,6 +330,14 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
     protected CheckRecipeResult checkProcessingMM() {
         CheckRecipeResult result = super.checkProcessingMM();
         if (result.wasSuccessful()) {
+            // Power insufficiency check: if enabled and power is too low, swallow materials
+            if (Config.EnablePowerInsufficientMaterialLoss && !isPowerSufficientForModules()) {
+                mOutputItems = null;
+                mOutputFluids = null;
+                consumeCurrencyFromRecipe();
+                resetRecipeCurrencyState();
+                return SimpleCheckRecipeResult.ofFailure("power_insufficient");
+            }
             applyRecoveryRate();
             consumeCurrencyFromRecipe();
         }
@@ -323,8 +357,12 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
             if (RecyclingRecipeGenerator.isCircuitBoard(mOutputItems[i])) continue;
             int original = mOutputItems[i].stackSize;
             if (original <= 0) continue;
-            int recovered = Math.max(1, Math.round(original * rate));
-            mOutputItems[i].stackSize = recovered;
+            int recovered = calculateRecoveredStackSize(original, rate, nextRecoveryRoll());
+            if (recovered <= 0) {
+                mOutputItems[i] = null;
+            } else {
+                mOutputItems[i].stackSize = recovered;
+            }
         }
     }
 
@@ -333,13 +371,116 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
             return;
         }
 
-        int remaining = currentRecipeCurrencyCost;
+        int remaining = scaleCurrencyCostForParallels(currentRecipeCurrencyCost, getCurrentRecipeParallelCount());
         for (FinancialHatch hatch : financialHatches) {
             if (remaining <= 0) {
                 break;
             }
             remaining -= hatch.consumeCurrency(currentRecipeCurrencyType, remaining);
         }
+    }
+
+    protected int getCurrentRecipeParallelCount() {
+        if (processingLogic == null) {
+            return 1;
+        }
+        return Math.max(1, processingLogic.getCurrentParallels());
+    }
+
+    protected int getAffordableCurrencyParallel(@NotNull GTRecipe recipe, int requestedParallel) {
+        CurrencyType currencyType = recipe.getMetadata(AHTechRecipeMetadata.CURRENCY_TYPE);
+        Integer currencyCost = recipe.getMetadata(AHTechRecipeMetadata.CURRENCY_COST);
+        if (!Config.EnableFinancialSystem || currencyType == null || currencyCost == null || currencyCost <= 0) {
+            return requestedParallel;
+        }
+        return limitParallelByAvailableCurrency(requestedParallel, getTotalCurrency(currencyType), currencyCost);
+    }
+
+    static int scaleCurrencyCostForParallels(int baseCost, int parallels) {
+        if (baseCost <= 0) {
+            return 0;
+        }
+        long scaled = (long) baseCost * Math.max(1, parallels);
+        return scaled > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) scaled;
+    }
+
+    static int limitParallelByAvailableCurrency(int requestedParallel, int availableCurrency, int currencyCost) {
+        if (requestedParallel <= 0 || availableCurrency <= 0 || currencyCost <= 0) {
+            return 0;
+        }
+        return Math.min(requestedParallel, availableCurrency / currencyCost);
+    }
+
+    static int calculateRecoveredStackSize(int original, float rate, int recoveryRoll) {
+        if (original <= 0 || rate <= 0.0f) {
+            return 0;
+        }
+        if (rate >= 1.0f) {
+            return original;
+        }
+
+        float expected = original * rate;
+        int guaranteed = (int) Math.floor(expected);
+        float fractional = expected - guaranteed;
+        int fractionalChance = Math.max(0, Math.min(10000, Math.round(fractional * 10000.0f)));
+        return guaranteed + (recoveryRoll < fractionalChance ? 1 : 0);
+    }
+
+    protected int nextRecoveryRoll() {
+        if (getBaseMetaTileEntity() == null) {
+            return 0;
+        }
+        return getBaseMetaTileEntity().getRandomNumber(10000);
+    }
+
+    // region Power Sufficiency Check
+
+    /**
+     * Calculates the total maintenance EU/t cost of all installed modules.
+     * Each module's cost scales with its tier.
+     */
+    private long calculateTotalMaintenanceEUt() {
+        long total = 0;
+        for (IModularHatch hatch : getModulesSubjectToMaintenance()) {
+            if (hatch instanceof ModularHatchBase base) {
+                total += base.getMaintenanceEUt();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Only AHTech-native modular hatches participate in the Electronics Market maintenance-EU mechanic.
+     * TST interop hatches still contribute their normal behavior, but TST's original implementation does
+     * not have this extra maintenance cost layer, so we keep them outside this pool for parity.
+     */
+    protected List<IModularHatch> getModulesSubjectToMaintenance() {
+        return new ArrayList<>(getAllModularHatches());
+    }
+
+    /**
+     * Sums stored EU across all energy hatches.
+     */
+    private long getTotalStoredEU() {
+        long stored = 0;
+        for (MTEHatch hatch : getExoticAndNormalEnergyHatchList()) {
+            stored += hatch.getBaseMetaTileEntity()
+                .getStoredEU();
+        }
+        return stored;
+    }
+
+    /**
+     * Checks if the stored EU is sufficient to cover module maintenance for at least one tick.
+     */
+    private boolean isPowerSufficientForModules() {
+        long maintenance = calculateTotalMaintenanceEUt();
+        if (maintenance <= 0) return true; // no modules, no cost
+        return hasEnoughStoredPower(getTotalStoredEU(), maintenance);
+    }
+
+    static boolean hasEnoughStoredPower(long storedEU, long maintenanceEUt) {
+        return storedEU >= maintenanceEUt;
     }
 
     // endregion
@@ -521,11 +662,7 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         rebuildActiveSuppliers();
         rebuildFinancialHatches();
         autoRefillFinancialHatches();
-        // Tier I base parallel: 4 (staticParallel=3, plus base +1 from getMaxParallelRecipes = 4)
-        if (structureTier == TIER_I) {
-            setStaticParallelParameter(3);
-        }
-        // Tier II/III: parallel, speed, overclock, recovery rate are driven by installed modules
+        // Stage I parallel is set in checkModularStaticSettings() override
         return true;
     }
 
@@ -593,6 +730,10 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         }
     }
 
+    void prepareFinancialStateForRecipeCheck() {
+        autoRefillFinancialHatches();
+    }
+
     private List<MTEHatchInputBus> getInputBuses() {
         List<MTEHatchInputBus> inputBuses = new ArrayList<>();
         for (Object hatch : GTUtility.validMTEList(mInputBusses)) {
@@ -639,6 +780,8 @@ public class ElectronicsMarket extends ModularizedMachineSupportAllModuleBase<El
         if (!Config.EnableFinancialSystem) {
             return CheckRecipeResultRegistry.SUCCESSFUL;
         }
+
+        prepareFinancialStateForRecipeCheck();
 
         CurrencyType currencyType = recipe.getMetadata(AHTechRecipeMetadata.CURRENCY_TYPE);
         Integer currencyCost = recipe.getMetadata(AHTechRecipeMetadata.CURRENCY_COST);

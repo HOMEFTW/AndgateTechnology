@@ -5,20 +5,26 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IDynamicModularHatch;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IModularHatch;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.IStaticModularHatch;
 import com.andgatech.AHTech.common.modularizedMachine.modularHatches.ModularHatchBase;
+import com.andgatech.AHTech.common.modularizedMachine.modularHatches.executionCore.ExecutionCoreBase;
 
+import cpw.mods.fml.common.Loader;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEExtendedPowerMultiBlockBase;
 import gregtech.api.recipe.check.CheckRecipeResult;
+import gregtech.api.util.shutdown.ShutDownReason;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 
 /**
  * Base class for modularized multiblock machines.
@@ -176,12 +182,11 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
      * All TST class references must be guarded by this check.
      */
     protected static boolean isTSTLoaded() {
-        try {
-            Class.forName("com.Nxer.TwistSpaceTechnology.TwistSpaceTechnology");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+        return isTSTLoaded(Loader::isModLoaded);
+    }
+
+    public static boolean isTSTLoaded(Predicate<String> modLoadedPredicate) {
+        return modLoadedPredicate.test("TwistSpaceTechnology");
     }
 
     /**
@@ -309,7 +314,11 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
     @Override
     public CheckRecipeResult checkProcessing() {
         checkModularDynamicParameters();
-        return checkProcessingMM();
+        CheckRecipeResult result = checkProcessingMM();
+        if (result.wasSuccessful()) {
+            offloadCurrentRecipeIfPossible();
+        }
+        return result;
     }
 
     // endregion
@@ -354,6 +363,7 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
 
     @Override
     public void resetModularHatchCollections() {
+        resetExecutionCores();
         modularHatches.clear();
         staticModularHatches.clear();
         dynamicModularHatches.clear();
@@ -388,6 +398,141 @@ public abstract class ModularizedMachineBase<T extends ModularizedMachineBase<T>
             }
         }
         return true;
+    }
+
+    // endregion
+
+    // region Execution Core Integration
+
+    protected List<ExecutionCoreBase> getExecutionCores() {
+        List<ExecutionCoreBase> executionCores = new ArrayList<>();
+        Collection<IModularHatch> registeredCores = modularHatches.get(ModularHatchType.EXECUTION_CORE);
+        if (registeredCores == null) {
+            return executionCores;
+        }
+
+        for (IModularHatch hatch : registeredCores) {
+            if (hatch instanceof ExecutionCoreBase executionCore) {
+                executionCores.add(executionCore);
+            }
+        }
+        return executionCores;
+    }
+
+    protected void offloadCurrentRecipeIfPossible() {
+        if (mMaxProgresstime <= 0) {
+            return;
+        }
+
+        for (ExecutionCoreBase executionCore : getExecutionCores()) {
+            if (executionCore.isIdle() && offloadCurrentRecipeToExecutionCore(executionCore)) {
+                return;
+            }
+        }
+    }
+
+    protected boolean offloadCurrentRecipeToExecutionCore(ExecutionCoreBase executionCore) {
+        if ((executionCore == null) || (mMaxProgresstime <= 0)) {
+            return false;
+        }
+        if (!executionCore.isHasBeenSetup() && !executionCore.setup(this)) {
+            return false;
+        }
+
+        executionCore.setOutputItems(mOutputItems)
+            .setOutputFluids(mOutputFluids)
+            .setMaxProgressingTime(mMaxProgresstime)
+            .setEut(Math.abs(lEUt));
+
+        if (!executionCore.done()) {
+            return false;
+        }
+
+        mOutputItems = null;
+        mOutputFluids = null;
+        mProgresstime = 0;
+        mMaxProgresstime = 0;
+        mEUt = 0;
+        lEUt = 0;
+        return true;
+    }
+
+    public void mergeOutputItems(ItemStack[] outputs) {
+        if ((outputs == null) || (outputs.length == 0)) {
+            return;
+        }
+        addItemOutputs(outputs);
+    }
+
+    public void mergeOutputFluids(FluidStack[] outputs) {
+        if ((outputs == null) || (outputs.length == 0)) {
+            return;
+        }
+        addFluidOutputs(outputs);
+    }
+
+    protected boolean hasWorkingExecutionCore() {
+        for (ExecutionCoreBase executionCore : getExecutionCores()) {
+            if (executionCore.isWorking()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected long getExecutionCoreMainPowerUsage() {
+        long totalUsage = 0;
+        for (ExecutionCoreBase executionCore : getExecutionCores()) {
+            if (executionCore.isWorking() && executionCore.useMainMachinePower()) {
+                totalUsage += executionCore.getEut();
+            }
+        }
+        return totalUsage;
+    }
+
+    protected long getActualExecutionCoreEnergyUsage() {
+        long executionCoreUsage = getExecutionCoreMainPowerUsage();
+        if (executionCoreUsage <= 0) {
+            return 0;
+        }
+        return (long) (executionCoreUsage * (10000.0 / Math.max(1000, mEfficiency)));
+    }
+
+    protected void resetExecutionCores() {
+        for (ExecutionCoreBase executionCore : getExecutionCores()) {
+            executionCore.reset();
+        }
+    }
+
+    protected void shutDownExecutionCores() {
+        for (ExecutionCoreBase executionCore : getExecutionCores()) {
+            executionCore.shutDown();
+        }
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (!aBaseMetaTileEntity.isServerSide()) {
+            return;
+        }
+
+        long executionCoreEnergyUsage = getActualExecutionCoreEnergyUsage();
+        if ((executionCoreEnergyUsage > 0) && !drainEnergyInput(executionCoreEnergyUsage)) {
+            shutDownExecutionCores();
+            stopMachine(ShutDownReasonRegistry.POWER_LOSS);
+            return;
+        }
+
+        if ((mMaxProgresstime <= 0) && hasWorkingExecutionCore()) {
+            aBaseMetaTileEntity.setActive(true);
+        }
+    }
+
+    @Override
+    public void stopMachine(@Nonnull ShutDownReason reason) {
+        shutDownExecutionCores();
+        super.stopMachine(reason);
     }
 
     // endregion

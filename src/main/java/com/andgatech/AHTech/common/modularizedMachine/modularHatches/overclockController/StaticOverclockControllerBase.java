@@ -18,7 +18,7 @@ public abstract class StaticOverclockControllerBase extends OverclockControllerB
 
     @Override
     public void onCheckMachine(ModularizedMachineBase<?> machine) {
-        if (machine instanceof ISupportOverclockController supportOverclockController) {
+        if (isCompatibleWithMachine(machine) && machine instanceof ISupportOverclockController supportOverclockController) {
             supportOverclockController.setOverclockType(getOverclockType());
         }
     }

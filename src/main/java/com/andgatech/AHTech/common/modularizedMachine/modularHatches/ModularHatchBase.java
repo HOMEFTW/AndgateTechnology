@@ -33,6 +33,17 @@ public abstract class ModularHatchBase extends MTEHatch implements IModularHatch
         return machine.getStructureTier() >= moduleTier;
     }
 
+    /**
+     * Returns the maintenance EU/t cost for this module.
+     * Scales with module tier: tier 7 (IV) = 1024, tier 8 (LuV) = 2048, etc.
+     * Modules with tier 0 (e.g. supplier/financial hatches) have no maintenance cost.
+     * Subclasses can override for custom costs.
+     */
+    public long getMaintenanceEUt() {
+        if (moduleTier <= 0) return 0;
+        return (long) Math.pow(2, moduleTier) * 8;
+    }
+
     @Override
     public boolean willExplodeInRain() {
         return false;

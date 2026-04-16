@@ -14,7 +14,7 @@ import gregtech.api.util.GTOreDictUnificator;
  */
 public class ShapedCraftRecipePool {
 
-    public static void loadRecipes() {
+    public static void loadContractRecipes() {
         long recipeBits = GTModHandler.RecipeBits.DISMANTLEABLE | GTModHandler.RecipeBits.REVERSIBLE;
 
         GTModHandler.addCraftingRecipe(
@@ -45,6 +45,10 @@ public class ShapedCraftRecipePool {
             new Object[] { "FGF", " C ", "PPP", 'F', ItemList.Field_Generator_UHV.get(1), 'G',
                 ModItemList.ContractLv3.get(1), 'C', ItemList.Circuit_Master.get(1), 'P',
                 GTOreDictUnificator.get(OrePrefixes.plate, Materials.Osmium, 1) });
+    }
+
+    public static void loadSupplierRecipes() {
+        long recipeBits = GTModHandler.RecipeBits.DISMANTLEABLE | GTModHandler.RecipeBits.REVERSIBLE;
 
         GTModHandler.addCraftingRecipe(
             ModItemList.SupplierShandongDezhou.get(1),

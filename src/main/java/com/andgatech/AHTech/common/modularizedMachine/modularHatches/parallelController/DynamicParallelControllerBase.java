@@ -18,7 +18,7 @@ public abstract class DynamicParallelControllerBase extends ParallelControllerBa
 
     @Override
     public void onCheckProcessing(ModularizedMachineBase<?> machine) {
-        if (machine instanceof ISupportParallelController parallelSupporter) {
+        if (isCompatibleWithMachine(machine) && machine instanceof ISupportParallelController parallelSupporter) {
             int p = parallelSupporter.getDynamicParallelParameterValue();
             if (p == Integer.MAX_VALUE) return;
             int tp = getParallel();

@@ -7,6 +7,7 @@ import com.andgatech.AHTech.loader.MachineLoader;
 import com.andgatech.AHTech.loader.MaterialLoader;
 import com.andgatech.AHTech.loader.RecipeLoader;
 
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -16,13 +17,17 @@ import cpw.mods.fml.common.event.FMLServerStartingEvent;
 
 public class CommonProxy {
 
+    public static boolean shouldLoadCurrencies() {
+        return Config.Enable_ElectronicsMarket && Config.EnableFinancialSystem;
+    }
+
     public void preInit(FMLPreInitializationEvent event) {
         Config.synchronizeConfiguration(event.getSuggestedConfigurationFile());
         AndgateTechnology.LOG.info(Tags.MODNAME + " at version " + Tags.VERSION);
 
         MaterialLoader.load();
         ContractLoader.loadContracts();
-        if (Config.EnableFinancialSystem) {
+        if (shouldLoadCurrencies()) {
             CurrencyLoader.loadCurrencies();
         }
     }

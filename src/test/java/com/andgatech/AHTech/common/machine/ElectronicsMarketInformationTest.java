@@ -32,13 +32,10 @@ class ElectronicsMarketInformationTest {
             new String[] {
                 "Electronics Market",
                 "Status: Idle",
-                "Stage: II",
-                "Contract: Lv2",
-                "Suppliers: 2",
-                "Parallel: 33",
+                "Stage: II | Contract: Lv2",
+                "Suppliers: 2 | Parallel: 33",
                 "Speed Bonus: 250%",
-                "Recovery Rate: 70%",
-                "Perfect Overclock: ON",
+                "Recovery Rate: 70% | Perfect Overclock: ON",
                 "Modules: General Disassembly",
                 "Finance: copperx12 | steelx3" },
             market.getInfoData());
@@ -59,13 +56,10 @@ class ElectronicsMarketInformationTest {
             Arrays.asList(
                 "Electronics Market",
                 "Status: Idle",
-                "Stage: III",
-                "Contract: None",
-                "Suppliers: 0",
-                "Parallel: 257",
+                "Stage: III | Contract: None",
+                "Suppliers: 0 | Parallel: 257",
                 "Speed Bonus: 400%",
-                "Recovery Rate: 90%",
-                "Perfect Overclock: OFF",
+                "Recovery Rate: 90% | Perfect Overclock: OFF",
                 "Modules: None",
                 "Finance: No Hatch"),
             market.reportMetrics());

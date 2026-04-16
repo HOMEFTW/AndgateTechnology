@@ -36,6 +36,7 @@ public abstract class ExecutionCoreBase extends ModularHatchBase implements IExe
     protected int boostedTime;
     protected long eut;
     protected boolean hasBeenSetup = false;
+    protected ModularizedMachineBase<?> mainMachine;
     protected boolean active = false;
     protected byte trySetInactiveTimes = 0;
 
@@ -52,12 +53,22 @@ public abstract class ExecutionCoreBase extends ModularHatchBase implements IExe
 
     public void runExecutionCoreTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (aBaseMetaTileEntity.isServerSide()) {
-            if (hasBeenSetup) {
+            if (hasBeenSetup && mainMachine != null) {
                 if (maxProgressingTime > 0) {
                     if (progressedTime < maxProgressingTime - 1) {
                         progressedTime++;
                     } else {
                         // output and finish this work
+                        if (outputItems != null && outputItems.length > 0) {
+                            mainMachine.mergeOutputItems(outputItems);
+                            outputItems = null;
+                        }
+
+                        if (outputFluids != null && outputFluids.length > 0) {
+                            mainMachine.mergeOutputFluids(outputFluids);
+                            outputFluids = null;
+                        }
+
                         resetParameters();
                     }
                 }
@@ -109,6 +120,7 @@ public abstract class ExecutionCoreBase extends ModularHatchBase implements IExe
         progressedTime = 0;
         eut = 0;
         hasBeenSetup = false;
+        mainMachine = null;
         setInactiveCritical();
     }
 
@@ -140,23 +152,91 @@ public abstract class ExecutionCoreBase extends ModularHatchBase implements IExe
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        saveExecutionState(aNBT);
+    }
+
+    protected void saveExecutionState(NBTTagCompound aNBT) {
         aNBT.setBoolean("MH_active", active);
         aNBT.setByte("trySetInactiveTimes", trySetInactiveTimes);
         aNBT.setInteger("maxProgressingTime", maxProgressingTime);
         aNBT.setInteger("progressedTime", progressedTime);
         aNBT.setInteger("boostedTime", boostedTime);
         aNBT.setLong("eut", eut);
+        saveNBTDataItemStacks(aNBT);
+        saveNBTDataFluidStacks(aNBT);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        loadExecutionState(aNBT);
+    }
+
+    protected void loadExecutionState(NBTTagCompound aNBT) {
         active = aNBT.getBoolean("MH_active");
         trySetInactiveTimes = aNBT.getByte("trySetInactiveTimes");
         maxProgressingTime = aNBT.getInteger("maxProgressingTime");
         progressedTime = aNBT.getInteger("progressedTime");
         boostedTime = aNBT.getInteger("boostedTime");
         eut = aNBT.getLong("eut");
+        loadNBTDataItemStacks(aNBT);
+        loadNBTDataFluidStacks(aNBT);
+    }
+
+    protected void saveNBTDataItemStacks(NBTTagCompound aNBT) {
+        if (outputItems != null && outputItems.length > 0) {
+            aNBT.setInteger("outputItemsLength", outputItems.length);
+            for (int i = 0; i < outputItems.length; i++) {
+                ItemStack stack = outputItems[i];
+                if (stack == null) {
+                    continue;
+                }
+                NBTTagCompound stackTag = new NBTTagCompound();
+                stack.writeToNBT(stackTag);
+                aNBT.setTag("outputItems" + i, stackTag);
+            }
+        }
+    }
+
+    protected void saveNBTDataFluidStacks(NBTTagCompound aNBT) {
+        if (outputFluids != null && outputFluids.length > 0) {
+            aNBT.setInteger("outputFluidsLength", outputFluids.length);
+            for (int i = 0; i < outputFluids.length; i++) {
+                FluidStack stack = outputFluids[i];
+                if (stack == null) {
+                    continue;
+                }
+                NBTTagCompound stackTag = new NBTTagCompound();
+                stack.writeToNBT(stackTag);
+                aNBT.setTag("outputFluids" + i, stackTag);
+            }
+        }
+    }
+
+    protected void loadNBTDataItemStacks(NBTTagCompound aNBT) {
+        int length = aNBT.getInteger("outputItemsLength");
+        if (length > 0) {
+            outputItems = new ItemStack[length];
+            for (int i = 0; i < length; i++) {
+                if (!aNBT.hasKey("outputItems" + i)) {
+                    continue;
+                }
+                outputItems[i] = ItemStack.loadItemStackFromNBT(aNBT.getCompoundTag("outputItems" + i));
+            }
+        }
+    }
+
+    protected void loadNBTDataFluidStacks(NBTTagCompound aNBT) {
+        int length = aNBT.getInteger("outputFluidsLength");
+        if (length > 0) {
+            outputFluids = new FluidStack[length];
+            for (int i = 0; i < length; i++) {
+                if (!aNBT.hasKey("outputFluids" + i)) {
+                    continue;
+                }
+                outputFluids[i] = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("outputFluids" + i));
+            }
+        }
     }
 
     // region Getter and Setter
@@ -205,11 +285,25 @@ public abstract class ExecutionCoreBase extends ModularHatchBase implements IExe
         return hasBeenSetup;
     }
 
+    public boolean setup(ModularizedMachineBase<?> machine) {
+        if ((machine == null) || hasBeenSetup) {
+            return false;
+        }
+        mainMachine = machine;
+        hasBeenSetup = true;
+        return true;
+    }
+
     // endregion
 
     @Override
     public void onCheckMachine(ModularizedMachineBase<?> machine) {
-        // do nothing - execution cores are validated but don't push parameters
+        // Execution cores don't push parameters, but still need tier validation.
+        // Incompatible cores are silently ignored (present in structure but inactive).
+        if (!isCompatibleWithMachine(machine)) {
+            return;
+        }
+        setup(machine);
     }
 
     @Override

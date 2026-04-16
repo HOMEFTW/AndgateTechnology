@@ -18,7 +18,7 @@ public abstract class StaticSpeedControllerBase extends SpeedControllerBase impl
 
     @Override
     public void onCheckMachine(ModularizedMachineBase<?> machine) {
-        if (machine instanceof ISupportSpeedController speedSupporter) {
+        if (isCompatibleWithMachine(machine) && machine instanceof ISupportSpeedController speedSupporter) {
             float s = speedSupporter.getStaticSpeedParameterValue();
             if (s <= 0) {
                 throw new RuntimeException("Error: Speed Bonus is 0 at machine - " + machine);

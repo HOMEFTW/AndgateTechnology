@@ -1,4 +1,211 @@
-# 开发日志
+﻿# 开发日志
+
+## 2026-04-15: 重新打通 Gradle 测试通道并完成验证
+### 已完成
+- 重新测试 `ElectronicsMarketFinancialBehaviorTest`，确认修复后的并行货币与单件回收率回归用例通过
+- 调试并修正 `RecyclingRecipeGeneratorBehaviorTest` 的测试环境兼容性：
+  - 不再依赖 `GTValues.RA` 初始化去验证逆向输入数量
+  - 不再直接走 `GTRecipe` 构造器与 `FluidRegistry` 静态初始化，而是改为测试内最小字段填充
+- 发现 Elytra conventions 插件默认仍会尝试联网拉 manifest；通过 `./gradlew.bat "-Pelytra.manifest.version=true" test` 成功强制使用项目内缓存的 `build/elytra_conventions/2.8.4.json`
+- 在上述参数下重新执行定向测试与全量测试，均已通过
+
+### 验证
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketFinancialBehaviorTest` 通过
+- `./gradlew.bat "-Pelytra.manifest.version=true" test --tests com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGeneratorBehaviorTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketFinancialBehaviorTest` 通过
+- `./gradlew.bat "-Pelytra.manifest.version=true" test` 通过
+- 仍有已有预处理警告：`[Translation Missing] Key 'comments' missing in 'zh_CN'`
+
+### 决策记录
+- 当前环境下，如需稳定离线/弱网测试，优先使用 `-Pelytra.manifest.version=true` 让 Elytra conventions 走本地 manifest 缓存
+- `RecyclingRecipeGeneratorBehaviorTest` 保持为纯逻辑测试，避免被 GT 全量初始化副作用污染
+
+---
+## 2026-04-15: 修复 ElectronicsMarket 并行货币与单件回收率
+### 已完成
+- 在 `ElectronicsMarket.createProcessingLogic()` 中覆写 `createParallelHelper(...)`，将实际可执行并行上限与当前可支付货币数量联动，避免机器先按高并行吃料、再只支付单份成本
+- 为货币结算补充 helper：
+  - `limitParallelByAvailableCurrency(...)`
+  - `scaleCurrencyCostForParallels(...)`
+  - `getCurrentRecipeParallelCount()`
+- `consumeCurrencyFromRecipe()` 现已按真实并行数扣除总货币成本，而不再只扣单份 `CURRENCY_COST`
+- 修复回收率计算：新增 `calculateRecoveredStackSize(...)` 与 `nextRecoveryRoll()`，改为“整数部分 + 余数概率补 1 个”；回收为 0 的非电路板产物会被清空，不再被 `Math.max(1, ...)` 强制保底
+- 扩展 `ElectronicsMarketFinancialBehaviorTest`，新增并行货币与单件产物回归断言
+
+### 验证
+- `./gradlew test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketFinancialBehaviorTest` 两次均未能执行到测试阶段
+- 阻塞原因仍为构建配置阶段的 `com.gtnewhorizons.gtnhconvention` 外部 manifest 拉取失败，报 `Failed to load the manifest from Github` / `java.net.ConnectException`
+- 因上述外部依赖失败，本轮暂未拿到新的 Gradle 级验证结果
+
+### 决策记录
+- 货币问题不只修“扣款总额”，同时修“可执行并行上限”，避免出现资金只够 1 并行却先按更高并行吃掉输入的次生问题
+- 回收率改为保持期望值正确的概率补偿，而不是简单 floor/round 或单件硬保底
+
+---
+## 2026-04-15: 继续审查 ElectronicsMarket 货币与回收率逻辑
+### 已完成
+- 继续检查 `ElectronicsMarket` 的并行、货币扣款与回收率实现，重点核对“配置值是否按实际数量生效”
+- 确认两个新的高风险问题：
+  - 机器启用了 `setMaxParallelSupplier(...)`，但 `validateRecipeAccess()` 只记录单份 `currentRecipeCurrencyCost`，`consumeCurrencyFromRecipe()` 也只扣一次，导致并行处理时货币成本不会按实际并行数放大
+  - `applyRecoveryRate()` 使用 `Math.max(1, Math.round(original * rate))` 缩放输出，任何 `stackSize == 1` 的非电路板产物都会被保底为 1 个，实际表现为单件产物始终 100% 回收
+
+### 决策记录
+- 本轮先记录审查发现，不直接修改实现
+- 后续修复需要补充两类回归测试：并行货币扣款乘数，以及单件产物在低回收率下不应被无条件保底
+
+---
+## 2026-04-15: 自动回收配方多产物与流体输入修复
+### 已完成
+- 为 `RecyclingRecipeGenerator` 新增 `RecyclingRecipeGeneratorBehaviorTest`，覆盖两类回归场景：
+  - 多产物正向配方生成的逆向配方必须消耗相同数量的成品
+  - 含 `mFluidInputs` 的 GT 配方不得自动生成回收配方
+- 调整 `ItemStackKey` 的语义为 `(item, damage, stackSize)`，使不同产出数量的同类物品不再共用同一条逆向候选
+- 新增 `IngredientKey` 专门用于原料合并，避免修复输出数量语义时破坏已有的同类原料堆叠合并逻辑
+- 修复 `buildRecyclingRecipes()`：逆向输入数量现在跟随正向输出 `stackSize`
+- 修复 `processGTRecipe()`：同时排除 `mFluidInputs` 与 `mFluidOutputs`，不再为带流体成本的 GT 配方生成错误回收配方
+
+### 验证
+- `./gradlew test --tests com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGeneratorBehaviorTest` 未能执行到测试阶段
+- 阻塞原因：构建配置阶段的 `com.gtnewhorizons.gtnhconvention` 需要从 GitHub 拉取 manifest，本次环境内两次均报 `Failed to load the manifest from Github` / `java.net.ConnectException`
+- 因上述外部依赖失败，本轮暂未拿到新的 Gradle 级验证结果
+
+### 决策记录
+- 采用方案 A：输出候选去重显式包含输出数量，并直接跳过任意带流体输入或输出的 GT 配方
+- 不将“输出去重 key”与“原料合并 key”混用，避免把修复多产物问题引入新的原料合并回归
+
+---
+## 2026-04-15: 继续审查自动回收配方生成器
+### 已完成
+- 继续检查 `RecyclingRecipeGenerator` 与其现有测试，重点审查配方逆向生成的数量语义与流体语义
+- 确认两个新的高风险问题：
+  - `ItemStackKey` 故意忽略输出 `stackSize`，且 `buildRecyclingRecipes()` 固定用 1 个成品作为逆向输入，导致多产物配方会被错误地压缩为“1 个成品换回整套原料”
+  - `processGTRecipe()` 只排除了 `mFluidOutputs`，没有排除 `mFluidInputs`，会把带流体输入的 GT 配方错误地转成不需要流体成本的回收配方
+
+### 决策记录
+- 本轮仅记录审查发现，不直接修改实现
+- 将上述两项加入 `ToDOLIST.md`，后续修复时需要补充针对“多输出堆叠”和“流体输入 GT 配方”的回归测试
+
+---
+## 2026-04-15: TST 维护耗电对齐与执行核心持久化修复
+### 已完成
+- 对照 `Twist-Space-Technology-Mod-main` 的模块化基类与执行核心实现，确认 TST 原版没有“模块维护耗电”机制，执行核心则会持久化输出缓存与进度参数
+- 在 `ElectronicsMarket` 中新增显式维护耗电池选择逻辑：`getModulesSubjectToMaintenance()` 只统计 AHTech 原生模块，明确将 TST 互通模块排除在维护耗电之外，以保持与 TST 原行为一致
+- 为 `ExecutionCoreBase` 抽出 `saveExecutionState(...)` / `loadExecutionState(...)`，并补齐输出物品、输出流体、进度与耗电参数的 NBT 持久化
+- 新增/扩展测试：
+  - `ElectronicsMarketModuleMaintenanceBehaviorTest`
+  - `ExecutionCoreIntegrationTest`
+
+### 验证
+- `./gradlew test --tests com.andgatech.AHTech.common.modularizedMachine.ExecutionCoreIntegrationTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketModuleMaintenanceBehaviorTest` 通过
+- `./gradlew test` 通过
+- Gradle 预处理阶段仍提示 `[Translation Missing] Key 'comments' missing in 'zh_CN'`
+
+### 决策记录
+- 第一项按 TST 原行为处理：TST 互通模块继续不参与 AHTech 自定义的维护耗电计算，但现在由显式逻辑保证，而不是依赖隐式副作用
+- 第二项沿用 TST 的恢复模式：执行核心持久化自身运行状态，但 `mainMachine` / `hasBeenSetup` 仍通过结构重检后的 `setup(...)` 重新建立绑定
+
+---
+## 2026-04-15: 代码检查与基线验证
+### 已完成
+- 阅读 `ToDOLIST.md`、`log.md`、`context.md`，并重点检查 `ElectronicsMarket`、`ModularizedMachineBase`、`ExecutionCoreBase`、`FinancialHatch` 等核心实现
+- 确认当前仍有两个未修复风险：
+  - TST 互通模块只进入 `tstModularHatches`，未进入 `allModularHatches`，导致 `ElectronicsMarket.calculateTotalMaintenanceEUt()` 不统计 TST 模块维护耗电
+  - `ExecutionCoreBase` 仅持久化 active/时间/eut，未持久化输出缓存与主机关联；服务器重启或区块卸载后，在途执行核心任务无法按现状恢复
+
+### 验证
+- `./gradlew test` 通过
+- Gradle 预处理阶段仍提示 `[Translation Missing] Key 'comments' missing in 'zh_CN'`
+
+### 决策记录
+- 本次仅做审查、验证与文档同步，不直接修改现有实现
+- 将上述两个问题写入 `ToDOLIST.md` 与 `context.md`，作为后续修复入口
+
+---
+## 2026-04-15: 模块化执行核心接线修复
+### 已完成
+- 修复 ModularizedMachineBase 的 TST 检测残留路径：新增 isTSTLoaded(Predicate<String>)，默认实现改为 Loader.isModLoaded("TwistSpaceTechnology")
+- 为 ExecutionCoreBase 补齐主机绑定与执行闭环：新增 mainMachine 引用、setup(...)、输出回流与 reset() 时解绑
+- 在 ModularizedMachineBase.checkProcessing() 成功后，将已计算完成的配方结果优先转交给空闲执行核心；主机本体清空自身进度与输出，恢复为空闲调度者
+- 为执行核心补齐主机侧输出回收与主机供电消耗：主机新增 mergeOutputItems(...) / mergeOutputFluids(...)，并在 onPostTick() 中为使用主机供电的执行核心按 tick 扣能
+- 新增 ExecutionCoreIntegrationTest，并扩展 LoaderConfigBehaviorTest 覆盖模块化基类的 TST 检测分支
+
+### 验证
+- ./gradlew test --tests com.andgatech.AHTech.loader.LoaderConfigBehaviorTest --tests com.andgatech.AHTech.common.modularizedMachine.ExecutionCoreIntegrationTest 通过
+- ./gradlew test 通过
+
+### 决策记录
+- 不额外移植 TST 的整套 MultiExecutionCoreMachineBase，而是在现有 ModularizedMachineBase 上补最小可用闭环，优先修复 AHTech 当前唯一模块化主机 ElectronicsMarket 的真实运行问题
+- 执行核心完成后直接把产物送回主机输出侧，而不是重新塞回 mOutputItems / mOutputFluids，避免主机在空闲调度模式下丢失产物
+
+---
+## 2026-04-15: 模块化系统继续审查
+### 已完成
+- 继续审查模块化系统，反向确认 ModularizedMachineBase 仍使用 Class.forName("com.Nxer.TwistSpaceTechnology.TwistSpaceTechnology") 判断 TST 是否加载
+- 排查 ExecutionCoreBase 执行链路，确认 hasBeenSetup 没有任何路径被设为 `true`，且主机依旧走 processingLogic，未将执行核心接入生产闭环
+- 确认该两类问题目前没有对应测试覆盖，现有 src/test/java 仅涵盖 loader、ElectronicsMarket、资金舱、货币与回收配方确定性
+
+### 决策记录
+- 将行为验收定义为“主机能正常扫描模块化舱口，且配方/能源/输出真正分发到执行核心”，而不是仅有 hatch 定义与 tooltip
+- 保留执行核心的现状记录到项目文档，后续修复时需要同步修正 context.md 中的能力描述
+
+---
+## 2026-04-15: 配置耦合与回收配方确定性修复
+
+### 已完成
+- 修复隐藏配置耦合：供应商舱口与 `FinancialHatch` 不再依赖 `EnableModularizedMachineSystem`，改为分别跟随 `Enable_ElectronicsMarket` 与 `EnableFinancialSystem`
+- 调整加载判定：`CurrencyLoader` / `CurrencyRecipePool` 仅在美弱南电子市场与资金系统同时启用时加载；供应商合成配方仅在 `Enable_ElectronicsMarket` 开启时注册
+- 修复 TST 检测：`MachineLoader` 不再通过本地存根类 `Class.forName()` 判断，而是改用 `Loader.isModLoaded("TwistSpaceTechnology")`
+- 修复自动回收配方的非确定性：`RecyclingRecipeGenerator` 不再对同一输出简单 `putIfAbsent`，改为按“更少输入数 → 更少总数量 → 规范化签名”选择稳定候选
+- 新增 `LoaderConfigBehaviorTest` 与 `RecyclingRecipeGeneratorDeterminismTest` 覆盖上述行为
+
+### 验证
+- `./gradlew test --tests com.andgatech.AHTech.loader.LoaderConfigBehaviorTest --tests com.andgatech.AHTech.recipe.machineRecipe.RecyclingRecipeGeneratorDeterminismTest` 通过
+- `./gradlew test` 通过
+
+### 决策记录
+- 保留合同物品合成配方常驻注册，但将供应商舱口配方与资金系统加载显式绑定到对应功能开关，避免出现“有配方无物品”的死状态
+- 供应商舱口继续使用既有稳定 Meta ID（35100-35106），`FinancialHatch` 继续使用 35107，避免因配置组合不同导致 ID 漂移
+
+---
+
+## 2026-04-15: 审查回归问题修复
+
+### 已完成
+- 修复 `ElectronicsMarket` 工业信息输出回归：`getInfoData()` 与 `reportMetrics()` 重新收敛为固定 8 行，同时保留阶段/合同、供应商/并行、回收率/完美超频、模块、资金摘要等关键信息
+- 修复模块维护耗电边界判定：存储 EU 与维护耗电 **相等** 时现在视为供电充足，不再错误进入 `power_insufficient`
+- 修复资金舱自动补币时机：在配方资金校验前调用 `prepareFinancialStateForRecipeCheck()`，使输入总线中的货币能在配方检查时被及时吸入 `FinancialHatch`
+- 新增回归测试 `ElectronicsMarketFinancialBehaviorTest`，并更新 `ElectronicsMarketInformationTest` 以覆盖上述行为
+
+### 验证
+- `./gradlew test --tests com.andgatech.AHTech.common.machine.ElectronicsMarketInformationTest --tests com.andgatech.AHTech.common.machine.ElectronicsMarketFinancialBehaviorTest` 通过
+- `./gradlew test` 通过
+
+### 遇到的问题
+- **Gradle 沙箱缓存目录不可写**：本地沙箱无法创建 wrapper lock file → 改为在授权后于沙箱外执行 Gradle 验证
+
+---
+
+## 2026-04-15: 阶段二未完成功能补全
+
+### 已完成
+- **模块等级门控**：为全部 7 类缺少等级检查的模块基类添加 `isCompatibleWithMachine(machine)` 守卫
+  - `StaticParallelControllerBase` / `DynamicParallelControllerBase`：onCheckMachine/onCheckProcessing 中加入守卫
+  - `StaticSpeedControllerBase` / `DynamicSpeedControllerBase`：同上
+  - `StaticOverclockControllerBase`：onCheckMachine 中加入守卫
+  - `StaticPowerConsumptionControllerBase`：onCheckMachine 中加入守卫
+  - `ExecutionCoreBase`：从空实现改为检查等级兼容性
+- **Stage I 模块禁装**：在 `ElectronicsMarket` 中覆写 `checkModularStaticSettings()`，Stage I 跳过模块应用和 TST 互通，仅使用硬编码参数（parallel=3）
+- **Stage II 显式解锁**：通过 `checkModularStaticSettings()` 覆写实现，Stage II/III 走 `super.checkModularStaticSettings()` 正常应用模块
+- **模块维护耗电**：`ModularHatchBase` 新增 `getMaintenanceEUt()` 方法，基于 tier 缩放（T7=1024, T8=2048, T9=4096...），tier=0 的舱口无维护成本
+- **供电不足吞材料**：`ElectronicsMarket.checkProcessingMM()` 中新增供电检查，当存储 EU 不足以覆盖模块维护耗电时，产出清零但输入照扣
+  - 新增 `calculateTotalMaintenanceEUt()` / `getTotalStoredEU()` / `isPowerSufficientForModules()` 辅助方法
+  - 新增 `Config.EnablePowerInsufficientMaterialLoss` 配置开关（默认开启）
+- 从 `checkMachineMM()` 中移除 Stage I 的 `setStaticParallelParameter(3)`，统一到 `checkModularStaticSettings()` 中管理
+
+### 验证
+- `./gradlew compileJava` 通过
+- `./gradlew test` 通过
+
+---
 
 ## 2026-04-15: `zh_CN.lang` 重新整理
 
